@@ -24,7 +24,7 @@ export function SectionHeader({ title, action, onAction }: { title: string; acti
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      {action ? <Pressable hitSlop={10} onPress={onAction}><Text style={styles.sectionAction}>{action}</Text></Pressable> : null}
+      {action ? <Pressable accessibilityRole="button" hitSlop={10} onPress={onAction}><Text style={styles.sectionAction}>{action}</Text></Pressable> : null}
     </View>
   );
 }
@@ -40,7 +40,7 @@ export function PrimaryButton({ label, onPress, icon = 'arrow-forward', disabled
 
 export function IconButton({ icon, onPress, accessibilityLabel }: { icon: IconName; onPress: () => void; accessibilityLabel: string }) {
   return (
-    <Pressable onPress={onPress} accessibilityLabel={accessibilityLabel} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+    <Pressable accessibilityRole="button" onPress={onPress} accessibilityLabel={accessibilityLabel} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
       <Ionicons name={icon} size={21} color={colors.text} />
     </Pressable>
   );

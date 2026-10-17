@@ -57,17 +57,17 @@ export default function LibraryScreen() {
     <Screen>
       <View style={styles.titleRow}>
         <View><Text style={styles.eyebrow}>Exercise database</Text><Text style={styles.title}>Find a movement</Text></View>
-        <Pressable accessibilityLabel="Create custom exercise" onPress={() => setShowCustom((value) => !value)} style={styles.addButton}><Ionicons name="add" size={25} color={colors.white} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Create custom exercise" onPress={() => setShowCustom((value) => !value)} style={styles.addButton}><Ionicons name="add" size={25} color={colors.white} /></Pressable>
       </View>
 
       <View style={styles.searchBox}>
         <Ionicons name="search" size={21} color={colors.textMuted} />
         <TextInput accessibilityLabel="Search exercises" value={query} onChangeText={setQuery} placeholder="Try “chest dumbbell”" placeholderTextColor={colors.textMuted} style={styles.searchInput} />
-        {query ? <Pressable onPress={() => setQuery('')}><Ionicons name="close-circle" size={20} color={colors.textMuted} /></Pressable> : null}
+        {query ? <Pressable accessibilityRole="button" accessibilityLabel="Clear exercise search" onPress={() => setQuery('')}><Ionicons name="close-circle" size={20} color={colors.textMuted} /></Pressable> : null}
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-        {exerciseFilters.map((item) => <Pressable key={item} onPress={() => setFilter(item)} style={[styles.filterChip, filter === item && styles.filterChipActive]}><Text style={[styles.filterText, filter === item && styles.filterTextActive]}>{item}</Text></Pressable>)}
+        {exerciseFilters.map((item) => <Pressable accessibilityRole="button" accessibilityState={{ selected: filter === item }} key={item} onPress={() => setFilter(item)} style={[styles.filterChip, filter === item && styles.filterChipActive]}><Text style={[styles.filterText, filter === item && styles.filterTextActive]}>{item}</Text></Pressable>)}
       </ScrollView>
 
       {showCustom ? (
@@ -78,7 +78,7 @@ export default function LibraryScreen() {
             <TextInput value={muscle} onChangeText={setMuscle} placeholder="Muscle group" placeholderTextColor={colors.textMuted} style={[styles.customInput, styles.half]} />
             <TextInput value={equipment} onChangeText={setEquipment} placeholder="Equipment" placeholderTextColor={colors.textMuted} style={[styles.customInput, styles.half]} />
           </View>
-          <Pressable onPress={saveCustom} style={styles.saveButton}><Text style={styles.saveText}>Save exercise</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={saveCustom} style={styles.saveButton}><Text style={styles.saveText}>Save exercise</Text></Pressable>
         </View>
       ) : null}
 
@@ -86,7 +86,7 @@ export default function LibraryScreen() {
       <View style={styles.list}>
         {!results.length ? <View style={styles.empty}><Ionicons name="search-outline" size={28} color={colors.textMuted} /><Text style={styles.emptyTitle}>No matching movement</Text><Text style={styles.emptyText}>Try fewer words, clear the filter, or create a custom exercise.</Text></View> : null}
         {results.map((exercise) => (
-          <Pressable key={exercise.id} onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: exercise.id } } as never)} style={({ pressed }) => [styles.exerciseCard, pressed && styles.pressed]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`View ${exercise.name}`} key={exercise.id} onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: exercise.id } } as never)} style={({ pressed }) => [styles.exerciseCard, pressed && styles.pressed]}>
             <View style={[styles.exerciseIcon, { backgroundColor: muscleColors[exercise.primaryMuscle] ?? colors.accentDim }]}><Ionicons name={exercise.type === 'Cardio' ? 'pulse' : 'barbell'} size={22} color={colors.text} /></View>
             <View style={styles.exerciseCopy}>
               <Text style={styles.exerciseName}>{exercise.name}</Text>

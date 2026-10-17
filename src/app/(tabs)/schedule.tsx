@@ -5,7 +5,7 @@ import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, Vie
 
 import { Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/constants/theme';
-import { connectGoogleCalendar, createGoogleEvent, deleteGoogleEvent, disconnectGoogleCalendar, googleCalendarConfigured, googleCalendarFallbackUrl, listGoogleWorkoutEvents, updateGoogleEvent } from '@/services/google-calendar';
+import { connectGoogleCalendar, createGoogleEvent, deleteGoogleEvent, disconnectGoogleCalendar, exportScheduleCalendar, googleCalendarConfigured, googleCalendarFallbackUrl, listGoogleWorkoutEvents, updateGoogleEvent } from '@/services/google-calendar';
 import { useWorkout } from '@/store/workout-store';
 import { ScheduledWorkout } from '@/types/workout';
 
@@ -112,6 +112,8 @@ export default function ScheduleScreen() {
     finally { setBusy(false); }
   };
   const disconnect = () => { disconnectGoogleCalendar(); setConnected(false); Alert.alert('Disconnected', 'Existing Google events remain in your calendar. Local schedules are unchanged.'); };
+  const openGoogleCalendar = () => Linking.openURL('https://calendar.google.com/calendar/u/0/r');
+  const exportCalendar = async () => { try { await exportScheduleCalendar(schedule, plans); } catch (error) { Alert.alert('Calendar export failed', error instanceof Error ? error.message : 'Try again.'); } };
 
   return (
     <Screen>
@@ -123,27 +125,28 @@ export default function ScheduleScreen() {
       <View style={styles.calendarCard}>
         <View style={styles.googleIcon}><Text style={styles.googleLetter}>G</Text></View>
         <View style={styles.calendarCopy}>
-          <Text style={styles.calendarTitle}>{connected ? 'Google Calendar connected' : 'Connect Google Calendar'}</Text>
-          <Text style={styles.calendarText}>{connected ? 'New workouts can sync automatically.' : googleCalendarConfigured ? 'See workouts beside school, work, and life.' : 'OAuth setup is required for direct sync. You can still add events with one tap.'}</Text>
+          <Text style={styles.calendarTitle}>{connected ? 'Google Calendar connected' : 'Google Calendar ready'}</Text>
+          <Text style={styles.calendarText}>{connected ? 'New workouts can sync automatically.' : googleCalendarConfigured ? 'Connect for automatic event updates, or use one-tap adds below.' : 'No connection needed: add one event below or export your full schedule.'}</Text>
         </View>
-        {googleCalendarConfigured ? <Pressable disabled={busy} onPress={connected ? disconnect : connect} style={[styles.connectButton, connected && styles.connectedButton]}><Text style={styles.connectText}>{connected ? 'Disconnect' : 'Connect'}</Text></Pressable> : null}
+        <Pressable accessibilityRole="button" accessibilityLabel={googleCalendarConfigured ? (connected ? 'Disconnect Google Calendar' : 'Connect Google Calendar') : 'Open Google Calendar'} disabled={busy} onPress={googleCalendarConfigured ? (connected ? disconnect : connect) : openGoogleCalendar} style={[styles.connectButton, connected && styles.connectedButton]}><Text style={styles.connectText}>{connected ? 'Disconnect' : googleCalendarConfigured ? 'Connect' : 'Open'}</Text></Pressable>
       </View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Download all scheduled workouts as a calendar file" onPress={exportCalendar} style={styles.calendarExport}><Ionicons name="download-outline" size={18} color={colors.accent} /><View style={styles.calendarExportCopy}><Text style={styles.calendarExportTitle}>Add the full schedule to a calendar</Text><Text style={styles.calendarExportText}>Downloads a standard .ics file for Google, Apple, or Outlook Calendar.</Text></View></Pressable>
 
       {showForm ? (
         <View style={styles.formCard}>
-          <View style={styles.formTop}><Text style={styles.formTitle}>{editing ? 'Edit workout' : 'Schedule workout'}</Text><Pressable onPress={() => setShowForm(false)}><Ionicons name="close" size={24} color={colors.text} /></Pressable></View>
+          <View style={styles.formTop}><Text style={styles.formTitle}>{editing ? 'Edit workout' : 'Schedule workout'}</Text><Pressable accessibilityRole="button" accessibilityLabel="Close schedule form" onPress={() => setShowForm(false)}><Ionicons name="close" size={24} color={colors.text} /></Pressable></View>
           <Text style={styles.label}>Workout</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.planPicker}>
-            {plans.map((plan) => <Pressable key={plan.id} onPress={() => setPlanId(plan.id)} style={[styles.planChip, planId === plan.id && styles.planChipActive]}><Text style={[styles.planChipText, planId === plan.id && styles.planChipTextActive]}>{plan.name}</Text></Pressable>)}
+            {plans.map((plan) => <Pressable accessibilityRole="button" accessibilityState={{ selected: planId === plan.id }} key={plan.id} onPress={() => setPlanId(plan.id)} style={[styles.planChip, planId === plan.id && styles.planChipActive]}><Text style={[styles.planChipText, planId === plan.id && styles.planChipTextActive]}>{plan.name}</Text></Pressable>)}
           </ScrollView>
           <View style={styles.inputRow}>
             <View style={styles.inputGroup}><Text style={styles.label}>Date</Text><TextInput value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" style={styles.input} /></View>
             <View style={styles.inputGroup}><Text style={styles.label}>Start</Text><TextInput value={time} onChangeText={setTime} placeholder="17:00" style={styles.input} /></View>
             <View style={styles.smallGroup}><Text style={styles.label}>Minutes</Text><TextInput value={duration} onChangeText={setDuration} keyboardType="number-pad" style={styles.input} /></View>
           </View>
-          <Pressable onPress={() => setRepeat((value) => !value)} style={styles.repeatRow}><Ionicons name={repeat ? 'checkbox' : 'square-outline'} size={23} color={colors.accent} /><Text style={styles.repeatText}>Repeat every week</Text></Pressable>
-          {repeat ? <View style={styles.weekdayRow}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, index) => <Pressable key={`${label}-${index}`} onPress={() => setWeekdays((days) => days.includes(index) ? days.filter((day) => day !== index) : [...days, index].sort())} style={[styles.weekday, weekdays.includes(index) && styles.weekdayActive]}><Text style={[styles.weekdayText, weekdays.includes(index) && styles.weekdayTextActive]}>{label}</Text></Pressable>)}</View> : null}
-          <Pressable disabled={busy} onPress={save} style={styles.saveButton}><Text style={styles.saveText}>{busy ? 'Saving…' : editing ? 'Save changes' : 'Add to schedule'}</Text></Pressable>
+          <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: repeat }} onPress={() => setRepeat((value) => !value)} style={styles.repeatRow}><Ionicons name={repeat ? 'checkbox' : 'square-outline'} size={23} color={colors.accent} /><Text style={styles.repeatText}>Repeat every week</Text></Pressable>
+          {repeat ? <View style={styles.weekdayRow}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, index) => <Pressable accessibilityRole="button" accessibilityLabel={['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][index]} accessibilityState={{ selected: weekdays.includes(index) }} key={`${label}-${index}`} onPress={() => setWeekdays((days) => days.includes(index) ? days.filter((day) => day !== index) : [...days, index].sort())} style={[styles.weekday, weekdays.includes(index) && styles.weekdayActive]}><Text style={[styles.weekdayText, weekdays.includes(index) && styles.weekdayTextActive]}>{label}</Text></Pressable>)}</View> : null}
+          <Pressable accessibilityRole="button" accessibilityLabel={editing ? 'Save schedule changes' : 'Add workout to schedule'} disabled={busy} onPress={save} style={styles.saveButton}><Text style={styles.saveText}>{busy ? 'Saving…' : editing ? 'Save changes' : 'Add to schedule'}</Text></Pressable>
         </View>
       ) : null}
 
@@ -163,12 +166,12 @@ export default function ScheduleScreen() {
                 <View style={styles.statusRow}><View style={[styles.statusDot, status === 'completed' && styles.completedDot, status === 'missed' && styles.missedDot]} /><Text style={styles.statusText}>{status}{item.recurrence === 'weekly' ? ' · repeats weekly' : ''}</Text></View>
               </View>
               <View style={styles.eventActions}>
-                {status === 'upcoming' ? <Pressable onPress={() => { if (plan) { startWorkout(plan.id, item.id); router.push('/workout'); } }} style={styles.playButton}><Ionicons name="play" size={18} color={colors.white} /></Pressable> : null}
-                <Pressable onPress={() => editItem(item)} style={styles.iconAction}><Ionicons name="create-outline" size={18} color={colors.textMuted} /></Pressable>
-                <Pressable onPress={() => remove(item)} style={styles.iconAction}><Ionicons name="trash-outline" size={18} color={colors.danger} /></Pressable>
+                {status === 'upcoming' ? <Pressable accessibilityRole="button" accessibilityLabel={`Start ${item.title}`} onPress={() => { if (plan) { startWorkout(plan.id, item.id); router.push('/workout'); } }} style={styles.playButton}><Ionicons name="play" size={18} color={colors.white} /></Pressable> : null}
+                <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${item.title}`} onPress={() => editItem(item)} style={styles.iconAction}><Ionicons name="create-outline" size={18} color={colors.textMuted} /></Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${item.title}`} onPress={() => remove(item)} style={styles.iconAction}><Ionicons name="trash-outline" size={18} color={colors.danger} /></Pressable>
               </View>
-              {plan && !item.googleEventId ? <Pressable onPress={() => Linking.openURL(googleCalendarFallbackUrl(item, plan))} style={styles.googleLink}><Ionicons name="calendar-outline" size={15} color={colors.accent} /><Text style={styles.googleLinkText}>Add to Google Calendar</Text></Pressable> : null}
-              {status === 'missed' ? <Pressable onPress={() => markSchedule(item.id, 'completed')} style={styles.markDone}><Text style={styles.markDoneText}>Mark completed</Text></Pressable> : null}
+              {plan && !item.googleEventId ? <Pressable accessibilityRole="link" accessibilityLabel={`Add ${item.title} to Google Calendar`} onPress={() => Linking.openURL(googleCalendarFallbackUrl(item, plan))} style={styles.googleLink}><Ionicons name="calendar-outline" size={15} color={colors.accent} /><Text style={styles.googleLinkText}>Add to Google Calendar</Text></Pressable> : null}
+              {status === 'missed' ? <Pressable accessibilityRole="button" accessibilityLabel={`Mark ${item.title} completed`} onPress={() => markSchedule(item.id, 'completed')} style={styles.markDone}><Text style={styles.markDoneText}>Mark completed</Text></Pressable> : null}
             </View>
           );
         })}
@@ -191,6 +194,10 @@ const styles = StyleSheet.create({
   connectButton: { paddingHorizontal: 13, paddingVertical: 10, backgroundColor: colors.accent, borderRadius: 12 },
   connectedButton: { backgroundColor: colors.success },
   connectText: { color: colors.white, fontSize: 11, fontWeight: '900' },
+  calendarExport: { minHeight: 68, marginTop: 10, borderRadius: 17, backgroundColor: colors.accentDim, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  calendarExportCopy: { flex: 1 },
+  calendarExportTitle: { color: colors.text, fontSize: 12, fontWeight: '900' },
+  calendarExportText: { color: colors.textMuted, fontSize: 10, lineHeight: 14, marginTop: 3 },
   formCard: { marginTop: 14, padding: 18, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.accentSoft },
   formTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   formTitle: { color: colors.text, fontSize: 20, fontWeight: '900' },

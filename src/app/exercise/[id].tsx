@@ -17,7 +17,7 @@ export default function ExerciseDetailScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}><Pressable onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.text} /></Pressable><Text style={styles.headerTitle}>Exercise details</Text><View style={styles.back} /></View>
+        <View style={styles.header}><Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.text} /></Pressable><Text style={styles.headerTitle}>Exercise details</Text><View style={styles.back} /></View>
         <View style={styles.hero}>
           <View style={styles.heroIcon}><Ionicons name={exercise.type === 'Cardio' ? 'pulse' : 'barbell'} size={35} color={colors.accent} /></View>
           <Text style={styles.title}>{exercise.name}</Text>
@@ -36,10 +36,10 @@ export default function ExerciseDetailScreen() {
         <View style={styles.tags}><View style={styles.primaryTag}><Text style={styles.primaryTagText}>{exercise.primaryMuscle} · primary</Text></View>{exercise.secondaryMuscles.map((muscle) => <View key={muscle} style={styles.tag}><Text style={styles.tagText}>{muscle}</Text></View>)}</View>
         <Text style={styles.sectionTitle}>Common mistakes</Text>
         <View style={styles.infoCard}>{(exercise.commonMistakes ?? ['Rushing the movement']).map((mistake) => <View key={mistake} style={styles.step}><Ionicons name="alert-circle-outline" size={20} color={colors.danger} /><Text style={styles.stepText}>{mistake}</Text></View>)}</View>
-        {exercise.substitutions?.length ? <><Text style={styles.sectionTitle}>Similar movement options</Text><View style={styles.infoCard}>{exercise.substitutions.map((subId) => { const item = exerciseLibrary.find((entry) => entry.id === subId); return item ? <Pressable key={subId} onPress={() => router.replace({ pathname: '/exercise/[id]', params: { id: subId } } as never)} style={styles.historyRow}><Text style={styles.historyValue}>{item.name}</Text><Ionicons name="chevron-forward" size={18} color={colors.textMuted} /></Pressable> : null; })}<Text style={styles.empty}>Alternatives can train a similar pattern without being identical.</Text></View></> : null}
+        {exercise.substitutions?.length ? <><Text style={styles.sectionTitle}>Similar movement options</Text><View style={styles.infoCard}>{exercise.substitutions.map((subId) => { const item = exerciseLibrary.find((entry) => entry.id === subId); return item ? <Pressable accessibilityRole="button" accessibilityLabel={`View ${item.name}`} key={subId} onPress={() => router.replace({ pathname: '/exercise/[id]', params: { id: subId } } as never)} style={styles.historyRow}><Text style={styles.historyValue}>{item.name}</Text><Ionicons name="chevron-forward" size={18} color={colors.textMuted} /></Pressable> : null; })}<Text style={styles.empty}>Alternatives can train a similar pattern without being identical.</Text></View></> : null}
         <Text style={styles.sectionTitle}>Previous performance</Text>
         <View style={styles.infoCard}>{previous.length ? previous.map((item) => <View key={`${item.date}-${item.id}`} style={styles.historyRow}><Text style={styles.historyDate}>{new Date(item.date).toLocaleDateString()}</Text><Text style={styles.historyValue}>{item.logs.filter((set) => set.completed).length} sets · best {Math.max(...item.logs.map((set) => Number(set.weight) || 0))} kg</Text></View>) : <Text style={styles.empty}>Complete this exercise to build your history.</Text>}</View>
-        <Pressable onPress={() => router.push({ pathname: '/builder', params: { add: exercise.id } } as never)} style={styles.addToWorkout}><Ionicons name="add" size={21} color={colors.white} /><Text style={styles.addText}>Add to a workout</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/builder', params: { add: exercise.id } } as never)} style={styles.addToWorkout}><Ionicons name="add" size={21} color={colors.white} /><Text style={styles.addText}>Add to a workout</Text></Pressable>
       </ScrollView>
     </SafeAreaView>
   );

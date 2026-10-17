@@ -32,7 +32,7 @@ Direct Google Calendar sync uses Google Identity Services in the web build. Crea
 EXPO_PUBLIC_GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com" npm run build:web
 ```
 
-Without that value, scheduling still works locally and each session has an **Add to Google Calendar** link that opens a pre-filled event. No client secret is stored in the app.
+Without that value, scheduling still works locally. Each session has an **Add to Google Calendar** link that opens a pre-filled event, and the complete schedule can be downloaded as a standard `.ics` calendar file. No client secret is stored in the app.
 
 No account, network connection, subscription, or backend is required. Workout data is stored on the device with AsyncStorage.
 

@@ -1,4 +1,6 @@
 import { Platform } from 'react-native';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 import { ScheduledWorkout, WorkoutPlan } from '@/types/workout';
 
@@ -117,4 +119,39 @@ export function googleCalendarFallbackUrl(item: ScheduledWorkout, plan: WorkoutP
   const stamp = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   const details = plan.exercises.map((exercise) => `${exercise.name}: ${exercise.sets} × ${exercise.repTarget}`).join('\n');
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${plan.name} · KineticForm`)}&dates=${stamp(start)}/${stamp(end)}&details=${encodeURIComponent(details)}`;
+}
+
+const icsEscape = (value: string) => value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+const icsStamp = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+
+export function scheduleCalendarFile(items: ScheduledWorkout[], plans: WorkoutPlan[]) {
+  const events = items.map((item) => {
+    const plan = plans.find((entry) => entry.id === item.planId);
+    const start = new Date(item.startISO);
+    const end = new Date(start.getTime() + item.durationMinutes * 60000);
+    const description = plan ? plan.exercises.map((exercise) => `${exercise.name}: ${exercise.sets} x ${exercise.repTarget}`).join('\n') : item.title;
+    const recurrence = item.recurrence === 'weekly' && item.weekdays?.length ? `\nRRULE:FREQ=WEEKLY;BYDAY=${item.weekdays.map((day) => ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][day]).join(',')}` : '';
+    return `BEGIN:VEVENT\nUID:${icsEscape(item.id)}@kineticform\nDTSTAMP:${icsStamp(new Date())}\nDTSTART:${icsStamp(start)}\nDTEND:${icsStamp(end)}\nSUMMARY:${icsEscape(`${item.title} · KineticForm`)}\nDESCRIPTION:${icsEscape(description)}${recurrence}\nEND:VEVENT`;
+  });
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//KineticForm//Training Schedule//EN', 'CALSCALE:GREGORIAN', ...events, 'END:VCALENDAR', ''].join('\r\n');
+}
+
+export async function exportScheduleCalendar(items: ScheduledWorkout[], plans: WorkoutPlan[]) {
+  const content = scheduleCalendarFile(items, plans);
+  const filename = `kineticform-schedule-${new Date().toISOString().slice(0, 10)}.ics`;
+  if (Platform.OS === 'web') {
+    const url = URL.createObjectURL(new Blob([content], { type: 'text/calendar;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+  const file = new File(Paths.cache, filename);
+  if (file.exists) file.delete();
+  file.create();
+  await file.write(content);
+  if (!(await Sharing.isAvailableAsync())) throw new Error('Calendar file sharing is unavailable on this device.');
+  await Sharing.shareAsync(file.uri, { mimeType: 'text/calendar', dialogTitle: 'Add KineticForm schedule to a calendar' });
 }

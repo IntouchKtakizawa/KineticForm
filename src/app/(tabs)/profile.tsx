@@ -26,7 +26,7 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <Pressable onPress={() => router.push('/progress')} style={styles.winsCard}>
+      <Pressable accessibilityRole="button" accessibilityLabel="View your progress" onPress={() => router.push('/progress')} style={styles.winsCard}>
         <View style={styles.winsIcon}><Ionicons name="trophy" size={23} color="#C87500" /></View>
         <View style={styles.privacyCopy}><Text style={styles.privacyTitle}>Your progress</Text><Text style={styles.privacyText}>{history.length} workouts completed · View your wins</Text></View>
         <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
@@ -34,7 +34,7 @@ export default function ProfileScreen() {
 
       <SectionHeader title="Workout settings" />
       <View style={styles.group}>
-        <Pressable onPress={() => router.push('/onboarding' as never)}><ListRow icon="options-outline" title="Training preferences" detail="Goal, equipment, days, and session length" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Training preferences" onPress={() => router.push('/onboarding' as never)}><ListRow icon="options-outline" title="Training preferences" detail="Goal, equipment, days, and session length" /></Pressable>
         <ListRow icon="calendar-outline" title="Workout plan" detail="Upper body · 5 moves" />
         <ListRow icon="scale-outline" title="Weight unit" detail="Choose kilograms or pounds" trailing={
           <Pressable accessibilityRole="button" accessibilityLabel={`Weight unit: ${weightUnit}. Tap to change.`} onPress={toggleWeightUnit} style={styles.unitToggle}>
@@ -47,13 +47,13 @@ export default function ProfileScreen() {
 
       <SectionHeader title="Your data" />
       <View style={styles.group}>
-        <Pressable onPress={() => router.push('/backup' as never)}><ListRow icon="shield-checkmark-outline" title="Backup & restore" detail="Download or safely restore your local data" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Backup and restore" onPress={() => router.push('/backup' as never)}><ListRow icon="shield-checkmark-outline" title="Backup & restore" detail="Download or safely restore your local data" /></Pressable>
       </View>
 
       <SectionHeader title="About" />
       <View style={styles.group}>
         <ListRow icon="phone-portrait-outline" title="Works offline" detail="Use it anywhere" />
-        <ListRow icon="heart-outline" title="KineticForm" detail="Version 1.0.0" />
+        <ListRow icon="heart-outline" title="KineticForm" detail="Version 1.0.1" />
       </View>
     </Screen>
   );

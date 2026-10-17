@@ -56,7 +56,7 @@ export default function WorkoutScreen() {
             <Text style={styles.live}>Workout time</Text>
             <Text style={styles.timer}>{formatTime(elapsed)}</Text>
           </View>
-          <Pressable disabled={progress.complete === 0} onPress={finish} style={[styles.finishButton, progress.complete === 0 && styles.disabled]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Finish workout" disabled={progress.complete === 0} onPress={finish} style={[styles.finishButton, progress.complete === 0 && styles.disabled]}>
             <Text style={styles.finishLabel}>Finish</Text>
           </Pressable>
         </View>
@@ -97,7 +97,7 @@ export default function WorkoutScreen() {
             />
           ))}
 
-          <Pressable disabled={progress.complete === 0} style={[styles.completeButton, progress.complete === 0 && styles.disabled]} onPress={finish}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Finish workout and save completed sets" disabled={progress.complete === 0} style={[styles.completeButton, progress.complete === 0 && styles.disabled]} onPress={finish}>
             <Ionicons name="trophy" size={26} color={colors.white} />
             <View style={styles.completeCopy}>
               <Text style={styles.completeTitle}>Finish workout</Text>
@@ -114,9 +114,9 @@ export default function WorkoutScreen() {
               <Text style={styles.restLabel}>{activeWorkout.pausedRestSeconds ? 'Timer paused' : 'Take a break'}</Text>
               <Text style={styles.restTime}>{formatTime(activeWorkout.pausedRestSeconds ?? restRemaining)}</Text>
             </View>
-            <Pressable onPress={pauseRest} style={styles.restAction}><Text style={styles.restActionText}>{activeWorkout.pausedRestSeconds ? 'Resume' : 'Pause'}</Text></Pressable>
-            <Pressable onPress={() => activeWorkout.pausedRestSeconds ? resetRest(activeWorkout.pausedRestSeconds + 30) : startRest(restRemaining + 30)} style={styles.restAction}><Text style={styles.restActionText}>+30 sec</Text></Pressable>
-            <Pressable onPress={skipRest} style={[styles.restAction, styles.skipAction]}><Text style={styles.skipText}>Skip</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={pauseRest} style={styles.restAction}><Text style={styles.restActionText}>{activeWorkout.pausedRestSeconds ? 'Resume' : 'Pause'}</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Add 30 seconds to rest" onPress={() => activeWorkout.pausedRestSeconds ? resetRest(activeWorkout.pausedRestSeconds + 30) : startRest(restRemaining + 30)} style={styles.restAction}><Text style={styles.restActionText}>+30 sec</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Skip rest timer" onPress={skipRest} style={[styles.restAction, styles.skipAction]}><Text style={styles.skipText}>Skip</Text></Pressable>
           </View>
         ) : null}
       </KeyboardAvoidingView>
@@ -157,7 +157,7 @@ function ExerciseLogger({ exercise, index, previous, onUpdate, onToggle, onKind,
 
       {exercise.logs.map((set, setIndex) => (
         <View key={set.id} style={[styles.setRow, set.completed && styles.completedRow]}>
-          <Pressable accessibilityLabel={`Set ${setIndex + 1} type ${set.kind ?? 'working'}`} onPress={() => onKind(set.id, set.kind === 'warmup' ? 'working' : 'warmup')} onLongPress={() => onRemove(set.id)} style={[styles.setBubble, set.kind === 'warmup' && styles.warmupBubble]}><Text style={styles.setCount}>{set.kind === 'warmup' ? 'W' : setIndex + 1}</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Set ${setIndex + 1} type ${set.kind ?? 'working'}. Tap to change; hold to remove.`} onPress={() => onKind(set.id, set.kind === 'warmup' ? 'working' : 'warmup')} onLongPress={() => onRemove(set.id)} style={[styles.setBubble, set.kind === 'warmup' && styles.warmupBubble]}><Text style={styles.setCount}>{set.kind === 'warmup' ? 'W' : setIndex + 1}</Text></Pressable>
           <TextInput
             accessibilityLabel={`Set ${setIndex + 1} ${isCardio ? 'distance' : 'weight'}`}
             value={set.weight}
@@ -192,8 +192,8 @@ function ExerciseLogger({ exercise, index, previous, onUpdate, onToggle, onKind,
       <View style={styles.quickActions}><Pressable accessibilityRole="button" onPress={() => onAdd(false)} style={styles.addSet}>
         <Ionicons name="add-circle-outline" size={19} color={colors.accent} />
         <Text style={styles.addSetLabel}>Add set</Text>
-      </Pressable><Pressable onPress={() => onAdd(true)} style={styles.addSet}><Ionicons name="copy-outline" size={17} color={colors.accent} /><Text style={styles.addSetLabel}>Repeat last</Text></Pressable></View>
-      <View style={styles.exerciseActions}><Pressable onPress={onSubstitute}><Text style={styles.exerciseActionText}>Substitute</Text></Pressable><Pressable onPress={onSkip}><Text style={[styles.exerciseActionText, styles.skipExercise]}>Skip exercise</Text></Pressable></View>
+      </Pressable><Pressable accessibilityRole="button" onPress={() => onAdd(true)} style={styles.addSet}><Ionicons name="copy-outline" size={17} color={colors.accent} /><Text style={styles.addSetLabel}>Repeat last</Text></Pressable></View>
+      <View style={styles.exerciseActions}><Pressable accessibilityRole="button" onPress={onSubstitute}><Text style={styles.exerciseActionText}>Substitute</Text></Pressable><Pressable accessibilityRole="button" onPress={onSkip}><Text style={[styles.exerciseActionText, styles.skipExercise]}>Skip exercise</Text></Pressable></View>
     </View>
   );
 }

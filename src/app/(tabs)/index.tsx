@@ -49,9 +49,9 @@ export default function TodayScreen() {
 
       <DateStrip />
 
-      {!onboardingComplete ? <Pressable onPress={() => router.push('/onboarding' as never)} style={styles.setupCard}><View><Text style={styles.setupTitle}>Set training preferences</Text><Text style={styles.setupText}>Optional · about one minute · editable later</Text></View><Ionicons name="arrow-forward" size={20} color={colors.accent} /></Pressable> : null}
+      {!onboardingComplete ? <Pressable accessibilityRole="button" accessibilityLabel="Set training preferences" onPress={() => router.push('/onboarding' as never)} style={styles.setupCard}><View><Text style={styles.setupTitle}>Set training preferences</Text><Text style={styles.setupText}>Optional · about one minute · editable later</Text></View><Ionicons name="arrow-forward" size={20} color={colors.accent} /></Pressable> : null}
 
-      {upcoming ? <Pressable onPress={() => router.push('/schedule' as never)} style={styles.upcomingCard}>
+      {upcoming ? <Pressable accessibilityRole="button" accessibilityLabel={`View upcoming workout ${upcoming.title}`} onPress={() => router.push('/schedule' as never)} style={styles.upcomingCard}>
         <View style={styles.upcomingIcon}><Ionicons name="calendar" size={21} color={colors.accent} /></View>
         <View style={styles.upcomingCopy}><Text style={styles.upcomingLabel}>NEXT WORKOUT</Text><Text style={styles.upcomingTitle}>{upcoming.title}</Text><Text style={styles.upcomingTime}>{new Date(upcoming.startISO).toLocaleDateString('en-US', { weekday: 'long' })} · {new Date(upcoming.startISO).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</Text></View>
         <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
