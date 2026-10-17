@@ -118,20 +118,21 @@ function ExerciseLogger({ exercise, index, onUpdate, onToggle, onAdd }: {
   onToggle: (setId: string, wasCompleted: boolean) => void;
   onAdd: () => void;
 }) {
+  const isCardio = exercise.type === 'Cardio';
   return (
     <View style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
         <View style={[styles.exerciseIndex, index % 2 === 1 && styles.exerciseIndexWarm]}><Text style={styles.exerciseIndexText}>{index + 1}</Text></View>
         <View style={styles.exerciseCopy}>
           <Text style={styles.exerciseName}>{exercise.name}</Text>
-          <Text style={styles.exerciseTarget}>{exercise.sets} sets × {exercise.repTarget} reps · {Math.round(exercise.restSeconds / 60)} min break</Text>
+          <Text style={styles.exerciseTarget}>{isCardio ? `${exercise.durationMinutes ?? 20} min${exercise.distanceKm ? ` · ${exercise.distanceKm} km` : ''}` : `${exercise.sets} sets × ${exercise.repTarget} reps · ${Math.round(exercise.restSeconds / 60)} min break`}</Text>
         </View>
       </View>
 
       <View style={styles.setHeader}>
-        <Text style={[styles.setHeading, styles.setNumber]}>Set</Text>
-        <Text style={styles.setHeading}>Weight</Text>
-        <Text style={styles.setHeading}>Reps</Text>
+        <Text style={[styles.setHeading, styles.setNumber]}>{isCardio ? 'Round' : 'Set'}</Text>
+        <Text style={styles.setHeading}>{isCardio ? 'Distance' : 'Weight'}</Text>
+        <Text style={styles.setHeading}>{isCardio ? 'Minutes' : 'Reps'}</Text>
         <Text style={styles.doneHeading}>Done</Text>
       </View>
 
@@ -139,23 +140,23 @@ function ExerciseLogger({ exercise, index, onUpdate, onToggle, onAdd }: {
         <View key={set.id} style={[styles.setRow, set.completed && styles.completedRow]}>
           <View style={styles.setBubble}><Text style={styles.setCount}>{setIndex + 1}</Text></View>
           <TextInput
-            accessibilityLabel={`Set ${setIndex + 1} weight`}
+            accessibilityLabel={`Set ${setIndex + 1} ${isCardio ? 'distance' : 'weight'}`}
             value={set.weight}
             onChangeText={(value) => onUpdate(set.id, 'weight', value)}
             style={[styles.input, set.completed && styles.completedInput]}
             keyboardType="decimal-pad"
             selectTextOnFocus
-            placeholder="0"
+            placeholder={isCardio ? 'km' : '0'}
             placeholderTextColor={colors.textMuted}
           />
           <TextInput
-            accessibilityLabel={`Set ${setIndex + 1} repetitions`}
+            accessibilityLabel={`Set ${setIndex + 1} ${isCardio ? 'minutes' : 'repetitions'}`}
             value={set.reps}
             onChangeText={(value) => onUpdate(set.id, 'reps', value)}
             style={[styles.input, set.completed && styles.completedInput]}
             keyboardType="number-pad"
             selectTextOnFocus
-            placeholder={exercise.repTarget.split('–')[0]}
+            placeholder={isCardio ? 'min' : exercise.repTarget.split('–')[0]}
             placeholderTextColor={colors.textMuted}
           />
           <Pressable

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 
 import { ListRow, Screen, SectionHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/constants/theme';
@@ -20,10 +21,16 @@ export default function ProfileScreen() {
       <View style={styles.privacyCard}>
         <View style={styles.privacyIcon}><Ionicons name="shield-checkmark" size={24} color={colors.success} /></View>
         <View style={styles.privacyCopy}>
-          <Text style={styles.privacyTitle}>Your data stays here</Text>
-          <Text style={styles.privacyText}>Nothing is sent to an account or server.</Text>
+          <Text style={styles.privacyTitle}>Private by default</Text>
+          <Text style={styles.privacyText}>Workout data stays on this device. Calendar events sync only when you choose Google.</Text>
         </View>
       </View>
+
+      <Pressable onPress={() => router.push('/progress')} style={styles.winsCard}>
+        <View style={styles.winsIcon}><Ionicons name="trophy" size={23} color="#C87500" /></View>
+        <View style={styles.privacyCopy}><Text style={styles.privacyTitle}>Your progress</Text><Text style={styles.privacyText}>{history.length} workouts completed · View your wins</Text></View>
+        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+      </Pressable>
 
       <SectionHeader title="Workout settings" />
       <View style={styles.group}>
@@ -40,7 +47,7 @@ export default function ProfileScreen() {
       <SectionHeader title="About" />
       <View style={styles.group}>
         <ListRow icon="phone-portrait-outline" title="Works offline" detail="Use it anywhere" />
-        <ListRow icon="heart-outline" title="KineticForm" detail="Version 0.1.0" />
+        <ListRow icon="heart-outline" title="KineticForm" detail="Version 0.2.0" />
       </View>
     </Screen>
   );
@@ -58,6 +65,8 @@ const styles = StyleSheet.create({
   privacyCopy: { flex: 1, marginLeft: 13 },
   privacyTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
   privacyText: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 3 },
+  winsCard: { marginTop: 10, minHeight: 82, borderRadius: radius.lg, backgroundColor: colors.warmDim, padding: 14, flexDirection: 'row', alignItems: 'center' },
+  winsIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   group: { paddingHorizontal: 17, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   unitToggle: { minWidth: 76, height: 38, paddingHorizontal: 11, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center' },
   unitText: { color: colors.white, fontSize: 11, fontWeight: '900' },

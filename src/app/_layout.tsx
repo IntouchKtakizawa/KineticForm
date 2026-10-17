@@ -25,6 +25,9 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ink }, animation: 'fade_from_bottom' }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="workout" options={{ gestureEnabled: false, animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="builder" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="import" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="exercise/[id]" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </WorkoutProvider>
   );

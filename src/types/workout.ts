@@ -13,6 +13,28 @@ export type Exercise = {
   repTarget: string;
   restSeconds: number;
   suggestedWeight: number;
+  equipment?: string;
+  type?: string;
+  movement?: string;
+  notes?: string;
+  durationMinutes?: number;
+  distanceKm?: number;
+};
+
+export type ExerciseDefinition = {
+  id: string;
+  name: string;
+  primaryMuscle: string;
+  secondaryMuscles: string[];
+  equipment: string;
+  type: string;
+  movement: string;
+  instructions: string[];
+  setup: string;
+  defaultSets: number;
+  defaultReps: string;
+  defaultRest: number;
+  custom?: boolean;
 };
 
 export type WorkoutPlan = {
@@ -21,6 +43,23 @@ export type WorkoutPlan = {
   focus: string;
   durationMinutes: number;
   exercises: Exercise[];
+  notes?: string;
+  createdAt?: number;
+};
+
+export type ScheduleStatus = 'upcoming' | 'completed' | 'missed';
+
+export type ScheduledWorkout = {
+  id: string;
+  planId: string;
+  title: string;
+  startISO: string;
+  durationMinutes: number;
+  recurrence: 'none' | 'weekly';
+  weekdays?: number[];
+  status: ScheduleStatus;
+  googleEventId?: string;
+  googleEventUrl?: string;
 };
 
 export type ActiveExercise = Exercise & { logs: SetLog[] };
@@ -50,4 +89,7 @@ export type WorkoutState = {
   history: WorkoutSession[];
   displayName: string;
   weightUnit: 'kg' | 'lb';
+  plans: WorkoutPlan[];
+  customExercises: ExerciseDefinition[];
+  schedule: ScheduledWorkout[];
 };

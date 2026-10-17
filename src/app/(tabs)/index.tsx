@@ -1,25 +1,28 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import type { Metadata } from 'expo-router/server';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { DateStrip } from '@/components/date-strip';
 import { ExerciseList } from '@/components/exercise-list';
 import { PrimaryButton, Screen, SectionHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/constants/theme';
-import { workoutPlans } from '@/data/plans';
 import { useWorkout } from '@/store/workout-store';
 
 export function generateMetadata(): Metadata {
   return {
     title: 'KineticForm — Simple Workout Tracker',
-    description: 'Start a workout, log each set, and celebrate your progress.',
+    description: 'Plan workouts, search exercises, build programs, import training plans, log sets, and track progress.',
   };
 }
 
 export default function TodayScreen() {
-  const plan = workoutPlans[0];
-  const { activeWorkout, displayName, startWorkout } = useWorkout();
+  const { workout } = useLocalSearchParams<{ workout?: string }>();
+  const { activeWorkout, displayName, startWorkout, plans, schedule } = useWorkout();
+  const [referenceNow] = useState(() => Date.now());
+  const plan = plans.find((item) => item.id === workout) ?? plans[0];
+  const upcoming = schedule.filter((item) => item.status === 'upcoming' && new Date(item.startISO).getTime() >= referenceNow).sort((a, b) => a.startISO.localeCompare(b.startISO))[0];
   const completedSets = activeWorkout?.exercises.flatMap((exercise) => exercise.logs).filter((set) => set.completed).length ?? 0;
   const totalSets = activeWorkout?.exercises.reduce((sum, exercise) => sum + exercise.logs.length, 0) ?? 0;
 
@@ -27,6 +30,12 @@ export default function TodayScreen() {
     if (!activeWorkout) startWorkout(plan.id);
     router.push('/workout');
   };
+
+  useEffect(() => {
+    if (workout && plans.some((item) => item.id === workout)) startWorkout(workout);
+  }, [workout, plans, startWorkout]);
+
+  if (!plan) return null;
 
   return (
     <Screen>
@@ -39,6 +48,12 @@ export default function TodayScreen() {
       </View>
 
       <DateStrip />
+
+      {upcoming ? <Pressable onPress={() => router.push('/schedule' as never)} style={styles.upcomingCard}>
+        <View style={styles.upcomingIcon}><Ionicons name="calendar" size={21} color={colors.accent} /></View>
+        <View style={styles.upcomingCopy}><Text style={styles.upcomingLabel}>NEXT WORKOUT</Text><Text style={styles.upcomingTitle}>{upcoming.title}</Text><Text style={styles.upcomingTime}>{new Date(upcoming.startISO).toLocaleDateString('en-US', { weekday: 'long' })} · {new Date(upcoming.startISO).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</Text></View>
+        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+      </Pressable> : null}
 
       <View style={styles.workoutCard}>
         <View style={styles.cardTop}>
@@ -92,6 +107,12 @@ const styles = StyleSheet.create({
   wave: { fontSize: 26 },
   greeting: { color: colors.text, fontSize: 26, fontWeight: '900', letterSpacing: -0.8 },
   prompt: { color: colors.textMuted, fontSize: 15, marginTop: 2 },
+  upcomingCard: { minHeight: 78, marginTop: 13, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, padding: 13, flexDirection: 'row', alignItems: 'center' },
+  upcomingIcon: { width: 45, height: 45, borderRadius: 15, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center', marginRight: 11 },
+  upcomingCopy: { flex: 1 },
+  upcomingLabel: { color: colors.accent, fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
+  upcomingTitle: { color: colors.text, fontSize: 14, fontWeight: '900', marginTop: 3 },
+  upcomingTime: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
   workoutCard: { backgroundColor: colors.surface, marginTop: spacing.lg, padding: 22, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, shadowColor: '#392776', shadowOpacity: 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 10 } },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   planIcon: { width: 54, height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentDim },

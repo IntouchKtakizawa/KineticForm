@@ -16,13 +16,16 @@ export default function TabLayout() {
         tabBarLabelStyle: styles.label,
       }}>
       <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'play-circle' : 'play-circle-outline'} size={24} color={String(color)} /> }} />
-      <Tabs.Screen name="progress" options={{ title: 'My wins', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'trophy' : 'trophy-outline'} size={22} color={String(color)} /> }} />
-      <Tabs.Screen name="profile" options={{ title: 'Settings', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'settings' : 'settings-outline'} size={22} color={String(color)} /> }} />
+      <Tabs.Screen name="schedule" options={{ title: 'Plan', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={21} color={String(color)} /> }} />
+      <Tabs.Screen name="library" options={{ title: 'Exercises', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'search' : 'search-outline'} size={22} color={String(color)} /> }} />
+      <Tabs.Screen name="programs" options={{ title: 'Programs', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'albums' : 'albums-outline'} size={21} color={String(color)} /> }} />
+      <Tabs.Screen name="profile" options={{ title: 'Me', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={21} color={String(color)} /> }} />
+      <Tabs.Screen name="progress" options={{ href: null }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
   tabBar: { position: 'absolute', height: 86, backgroundColor: colors.surface, borderTopColor: colors.line, paddingTop: 8 },
-  label: { fontSize: 11, fontWeight: '800', marginTop: 2 },
+  label: { fontSize: 9, fontWeight: '800', marginTop: 2 },
 });

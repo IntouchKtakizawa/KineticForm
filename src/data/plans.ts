@@ -7,11 +7,11 @@ export const workoutPlans: WorkoutPlan[] = [
     focus: 'Chest · Back · Shoulders',
     durationMinutes: 52,
     exercises: [
-      { id: 'bench', name: 'Barbell Bench Press', muscle: 'Chest', sets: 4, repTarget: '6–8', restSeconds: 120, suggestedWeight: 45 },
-      { id: 'row', name: 'Chest-Supported Row', muscle: 'Back', sets: 4, repTarget: '8–10', restSeconds: 90, suggestedWeight: 32.5 },
-      { id: 'press', name: 'Seated DB Press', muscle: 'Shoulders', sets: 3, repTarget: '8–10', restSeconds: 90, suggestedWeight: 14 },
-      { id: 'pulldown', name: 'Lat Pulldown', muscle: 'Back', sets: 3, repTarget: '10–12', restSeconds: 75, suggestedWeight: 40 },
-      { id: 'raise', name: 'Cable Lateral Raise', muscle: 'Shoulders', sets: 3, repTarget: '12–15', restSeconds: 60, suggestedWeight: 7.5 },
+      { id: 'bench', name: 'Barbell Bench Press', muscle: 'Chest', equipment: 'Barbell', type: 'Strength', movement: 'Push', sets: 4, repTarget: '6–8', restSeconds: 120, suggestedWeight: 45 },
+      { id: 'row', name: 'Chest-Supported Row', muscle: 'Back', equipment: 'Machines', type: 'Strength', movement: 'Horizontal pull', sets: 4, repTarget: '8–10', restSeconds: 90, suggestedWeight: 32.5 },
+      { id: 'press', name: 'Seated DB Press', muscle: 'Shoulders', equipment: 'Dumbbells', type: 'Strength', movement: 'Push', sets: 3, repTarget: '8–10', restSeconds: 90, suggestedWeight: 14 },
+      { id: 'pulldown', name: 'Lat Pulldown', muscle: 'Back', equipment: 'Cables', type: 'Strength', movement: 'Vertical pull', sets: 3, repTarget: '10–12', restSeconds: 75, suggestedWeight: 40 },
+      { id: 'raise', name: 'Cable Lateral Raise', muscle: 'Shoulders', equipment: 'Cables', type: 'Strength', movement: 'Abduction', sets: 3, repTarget: '12–15', restSeconds: 60, suggestedWeight: 7.5 },
     ],
   },
 ];
