@@ -101,11 +101,22 @@ export type WorkoutSession = {
   exercises: ActiveExercise[];
 };
 
+export type UserProfile = {
+  avatarEmoji: string;
+  age?: number;
+  heightCm?: number;
+  bodyWeightKg?: number;
+  targetWeightKg?: number;
+  activityLevel: string;
+  goalNote: string;
+};
+
 export type WorkoutState = {
   schemaVersion: 3;
   activeWorkout: ActiveWorkout | null;
   history: WorkoutSession[];
   displayName: string;
+  profile: UserProfile;
   weightUnit: 'kg' | 'lb';
   plans: WorkoutPlan[];
   customExercises: ExerciseDefinition[];

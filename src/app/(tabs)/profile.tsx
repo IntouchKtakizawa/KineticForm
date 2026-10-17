@@ -7,11 +7,11 @@ import { colors, radius, spacing } from '@/constants/theme';
 import { useWorkout } from '@/store/workout-store';
 
 export default function ProfileScreen() {
-  const { displayName, history, weightUnit, toggleWeightUnit } = useWorkout();
+  const { displayName, profile, preferences, history, weightUnit, toggleWeightUnit } = useWorkout();
   return (
     <Screen>
       <View style={styles.profileTop}>
-        <View style={styles.avatar}><Text style={styles.avatarText}>{displayName.slice(0, 1).toUpperCase()}</Text></View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Edit your profile" onPress={() => router.push('/about-you' as never)} style={styles.avatar}><Text style={styles.avatarText}>{profile.avatarEmoji || displayName.slice(0, 1).toUpperCase()}</Text></Pressable>
         <View style={styles.profileCopy}>
           <Text style={styles.title}>Settings</Text>
           <Text style={styles.subtitle}>{displayName} · {history.length} workouts</Text>
@@ -31,6 +31,12 @@ export default function ProfileScreen() {
         <View style={styles.privacyCopy}><Text style={styles.privacyTitle}>Your progress</Text><Text style={styles.privacyText}>{history.length} workouts completed · View your wins</Text></View>
         <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
       </Pressable>
+
+      <SectionHeader title="Personal profile" />
+      <View style={styles.group}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Get to know you" onPress={() => router.push('/about-you' as never)}><ListRow icon="person-circle-outline" title="Get to know you" detail="Name, avatar, body details, and personal goals" /></Pressable>
+        <ListRow icon="flag-outline" title="Current focus" detail={preferences.goal} />
+      </View>
 
       <SectionHeader title="Workout settings" />
       <View style={styles.group}>
@@ -53,7 +59,7 @@ export default function ProfileScreen() {
       <SectionHeader title="About" />
       <View style={styles.group}>
         <ListRow icon="phone-portrait-outline" title="Works offline" detail="Use it anywhere" />
-        <ListRow icon="heart-outline" title="KineticForm" detail="Version 1.0.2" />
+        <ListRow icon="heart-outline" title="KineticForm" detail="Version 1.1.0" />
       </View>
     </Screen>
   );

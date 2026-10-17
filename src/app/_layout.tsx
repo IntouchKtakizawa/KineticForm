@@ -28,6 +28,7 @@ export default function RootLayout() {
         <Stack.Screen name="builder" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="import" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="backup" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="about-you" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
         <Stack.Screen name="exercise/[id]" options={{ animation: 'slide_from_right' }} />
       </Stack>

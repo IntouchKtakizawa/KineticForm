@@ -23,6 +23,7 @@ Calendar integration is app-managed rather than two-way synchronization: Kinetic
 - Active-workout recovery, warm-up sets, previous-set context, repeat/undo controls, substitutions, and a pausable rest timer
 - Program grouping, optional onboarding preferences, raw history CSV, richer progress metrics, and expanded exercise aliases
 - Safer imports with file limits, scanned-PDF detection, original-line review, and visible unmatched entries
+- Editable local profile with name, emoji avatar, body details, activity level, and personal goals
 
 ## Google Calendar setup
 
