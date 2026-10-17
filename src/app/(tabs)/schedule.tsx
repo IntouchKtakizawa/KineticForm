@@ -160,18 +160,20 @@ export default function ScheduleScreen() {
           return (
             <View key={item.id} style={styles.eventCard}>
               <View style={styles.dateBlock}><Text style={styles.day}>{start.toLocaleDateString('en-US', { weekday: 'short' })}</Text><Text style={styles.dateNumber}>{start.getDate()}</Text></View>
-              <View style={styles.eventCopy}>
-                <Text style={styles.eventTitle}>{item.title}</Text>
-                <Text style={styles.eventTime}>{start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}–{new Date(start.getTime() + item.durationMinutes * 60000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</Text>
-                <View style={styles.statusRow}><View style={[styles.statusDot, status === 'completed' && styles.completedDot, status === 'missed' && styles.missedDot]} /><Text style={styles.statusText}>{status}{item.recurrence === 'weekly' ? ' · repeats weekly' : ''}</Text></View>
+              <View style={styles.eventBody}>
+                <View style={styles.eventCopy}>
+                  <Text numberOfLines={2} style={styles.eventTitle}>{item.title}</Text>
+                  <Text style={styles.eventTime}>{start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}–{new Date(start.getTime() + item.durationMinutes * 60000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</Text>
+                  <View style={styles.statusRow}><View style={[styles.statusDot, status === 'completed' && styles.completedDot, status === 'missed' && styles.missedDot]} /><Text style={styles.statusText}>{status}{item.recurrence === 'weekly' ? ' · repeats weekly' : ''}</Text></View>
+                </View>
+                <View style={styles.eventActions}>
+                  {status === 'upcoming' ? <Pressable accessibilityRole="button" accessibilityLabel={`Start ${item.title}`} onPress={() => { if (plan) { startWorkout(plan.id, item.id); router.push('/workout'); } }} style={styles.playButton}><Ionicons name="play" size={18} color={colors.white} /></Pressable> : null}
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${item.title}`} onPress={() => editItem(item)} style={styles.iconAction}><Ionicons name="create-outline" size={18} color={colors.textMuted} /></Pressable>
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${item.title}`} onPress={() => remove(item)} style={styles.iconAction}><Ionicons name="trash-outline" size={18} color={colors.danger} /></Pressable>
+                </View>
+                {plan && !item.googleEventId ? <Pressable accessibilityRole="link" accessibilityLabel={`Add ${item.title} to Google Calendar`} onPress={() => Linking.openURL(googleCalendarFallbackUrl(item, plan))} style={styles.googleLink}><Ionicons name="calendar-outline" size={15} color={colors.accent} /><Text style={styles.googleLinkText}>Add to Google Calendar</Text></Pressable> : null}
+                {status === 'missed' ? <Pressable accessibilityRole="button" accessibilityLabel={`Mark ${item.title} completed`} onPress={() => markSchedule(item.id, 'completed')} style={styles.markDone}><Text style={styles.markDoneText}>Mark completed</Text></Pressable> : null}
               </View>
-              <View style={styles.eventActions}>
-                {status === 'upcoming' ? <Pressable accessibilityRole="button" accessibilityLabel={`Start ${item.title}`} onPress={() => { if (plan) { startWorkout(plan.id, item.id); router.push('/workout'); } }} style={styles.playButton}><Ionicons name="play" size={18} color={colors.white} /></Pressable> : null}
-                <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${item.title}`} onPress={() => editItem(item)} style={styles.iconAction}><Ionicons name="create-outline" size={18} color={colors.textMuted} /></Pressable>
-                <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${item.title}`} onPress={() => remove(item)} style={styles.iconAction}><Ionicons name="trash-outline" size={18} color={colors.danger} /></Pressable>
-              </View>
-              {plan && !item.googleEventId ? <Pressable accessibilityRole="link" accessibilityLabel={`Add ${item.title} to Google Calendar`} onPress={() => Linking.openURL(googleCalendarFallbackUrl(item, plan))} style={styles.googleLink}><Ionicons name="calendar-outline" size={15} color={colors.accent} /><Text style={styles.googleLinkText}>Add to Google Calendar</Text></Pressable> : null}
-              {status === 'missed' ? <Pressable accessibilityRole="button" accessibilityLabel={`Mark ${item.title} completed`} onPress={() => markSchedule(item.id, 'completed')} style={styles.markDone}><Text style={styles.markDoneText}>Mark completed</Text></Pressable> : null}
             </View>
           );
         })}
@@ -222,11 +224,12 @@ const styles = StyleSheet.create({
   saveText: { color: colors.white, fontSize: 15, fontWeight: '900' },
   sectionTitle: { color: colors.text, fontSize: 21, fontWeight: '900', marginTop: spacing.xl, marginBottom: 13 },
   list: { gap: 11 },
-  eventCard: { minHeight: 112, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, padding: 14, flexDirection: 'row', alignItems: 'flex-start', flexWrap: 'wrap' },
+  eventCard: { minHeight: 112, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, padding: 14, flexDirection: 'row', alignItems: 'flex-start' },
   dateBlock: { width: 54, height: 64, borderRadius: 16, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center' },
   day: { color: colors.accent, fontSize: 10, fontWeight: '900' },
   dateNumber: { color: colors.text, fontSize: 20, fontWeight: '900', marginTop: 2 },
-  eventCopy: { flex: 1, marginLeft: 12 },
+  eventBody: { flex: 1, minWidth: 0, marginLeft: 12 },
+  eventCopy: { minWidth: 0 },
   eventTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
   eventTime: { color: colors.textMuted, fontSize: 12, marginTop: 4 },
   statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 7 },
@@ -234,11 +237,11 @@ const styles = StyleSheet.create({
   completedDot: { backgroundColor: colors.success },
   missedDot: { backgroundColor: colors.danger },
   statusText: { color: colors.textMuted, fontSize: 10, textTransform: 'capitalize' },
-  eventActions: { flexDirection: 'row', gap: 5 },
+  eventActions: { flexDirection: 'row', gap: 7, marginTop: 11 },
   playButton: { width: 38, height: 38, borderRadius: 13, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   iconAction: { width: 34, height: 38, alignItems: 'center', justifyContent: 'center' },
-  googleLink: { marginLeft: 66, marginTop: 10, flexDirection: 'row', gap: 5, alignItems: 'center' },
+  googleLink: { alignSelf: 'flex-start', marginTop: 11, flexDirection: 'row', gap: 5, alignItems: 'center' },
   googleLinkText: { color: colors.accent, fontSize: 11, fontWeight: '800' },
-  markDone: { marginLeft: 12, marginTop: 8 },
+  markDone: { alignSelf: 'flex-start', marginTop: 8 },
   markDoneText: { color: colors.success, fontSize: 11, fontWeight: '900' },
 });

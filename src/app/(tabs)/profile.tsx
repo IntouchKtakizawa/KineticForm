@@ -53,7 +53,7 @@ export default function ProfileScreen() {
       <SectionHeader title="About" />
       <View style={styles.group}>
         <ListRow icon="phone-portrait-outline" title="Works offline" detail="Use it anywhere" />
-        <ListRow icon="heart-outline" title="KineticForm" detail="Version 1.0.1" />
+        <ListRow icon="heart-outline" title="KineticForm" detail="Version 1.0.2" />
       </View>
     </Screen>
   );
