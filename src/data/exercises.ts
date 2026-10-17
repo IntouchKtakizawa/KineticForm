@@ -50,7 +50,34 @@ const seeds: ExerciseSeed[] = [
   ['treadmill-run', 'Treadmill Run', 'Cardio', 'Legs', 'Machines', 'Cardio', 'Run', 1, '15–45 min', 0],
   ['stationary-bike', 'Stationary Bike', 'Cardio', 'Legs', 'Machines', 'Cardio', 'Cycle', 1, '15–45 min', 0],
   ['jump-rope', 'Jump Rope', 'Cardio', 'Calves, Shoulders', 'Bodyweight', 'Cardio', 'Jump', 5, '60 sec', 30],
+  ['sumo-deadlift', 'Sumo Deadlift', 'Legs', 'Glutes, Back, Core', 'Barbell', 'Strength', 'Hinge', 3, '3–6', 180],
+  ['trap-bar-deadlift', 'Trap Bar Deadlift', 'Legs', 'Glutes, Back, Core', 'Barbell', 'Strength', 'Hinge', 3, '5–8', 150],
+  ['good-morning', 'Barbell Good Morning', 'Legs', 'Glutes, Back', 'Barbell', 'Strength', 'Hinge', 3, '8–12', 90],
+  ['glute-bridge', 'Glute Bridge', 'Legs', 'Glutes, Core', 'Bodyweight', 'Strength', 'Hinge', 3, '12–20', 60],
+  ['step-up', 'Dumbbell Step-Up', 'Legs', 'Glutes, Core', 'Dumbbells', 'Strength', 'Lunge', 3, '8–12', 75],
+  ['single-leg-rdl', 'Single-Leg Romanian Deadlift', 'Legs', 'Glutes, Core', 'Dumbbells', 'Strength', 'Hinge', 3, '8–12', 75],
+  ['assisted-pull-up', 'Assisted Pull-Up', 'Back', 'Biceps, Core', 'Machines', 'Assisted', 'Vertical pull', 3, '6–12', 90],
+  ['dumbbell-bench-press', 'Dumbbell Bench Press', 'Chest', 'Triceps, Shoulders', 'Dumbbells', 'Strength', 'Push', 3, '8–12', 90],
+  ['landmine-press', 'Landmine Press', 'Shoulders', 'Chest, Triceps', 'Barbell', 'Strength', 'Push', 3, '8–12', 75],
+  ['inverted-row', 'Inverted Row', 'Back', 'Biceps, Core', 'Bodyweight', 'Strength', 'Horizontal pull', 3, '8–15', 75],
+  ['pallof-press', 'Pallof Press', 'Core', 'Shoulders', 'Cables', 'Strength', 'Brace', 3, '10–15', 60],
+  ['dead-bug', 'Dead Bug', 'Core', 'Hip flexors', 'Bodyweight', 'Strength', 'Brace', 3, '8–12', 45],
+  ['side-plank', 'Side Plank', 'Core', 'Shoulders, Glutes', 'Bodyweight', 'Isometric', 'Brace', 3, '30–60 sec', 45],
+  ['elliptical', 'Elliptical Trainer', 'Cardio', 'Legs', 'Machines', 'Cardio', 'Cyclic', 1, '15–45 min', 0],
+  ['outdoor-run', 'Outdoor Run', 'Cardio', 'Legs', 'Bodyweight', 'Cardio', 'Run', 1, '15–60 min', 0],
+  ['walking', 'Brisk Walking', 'Cardio', 'Legs', 'Bodyweight', 'Cardio', 'Walk', 1, '15–60 min', 0],
 ];
+
+const aliases: Record<string, string[]> = {
+  'romanian-deadlift': ['RDL', 'Romanian dead lift'],
+  'barbell-bench-press': ['Bench press', 'Bench'],
+  'pull-up': ['Pullup', 'Chin up'],
+  'lat-pulldown': ['Lat pull down'],
+  'overhead-press': ['OHP', 'Military press'],
+  'back-squat': ['Squat', 'Barbell squat'],
+  'bulgarian-split-squat': ['BSS', 'Rear foot elevated split squat'],
+  'stationary-bike': ['Exercise bike', 'Indoor cycling'],
+};
 
 export const exerciseLibrary: ExerciseDefinition[] = seeds.map(([id, name, primaryMuscle, secondary, equipment, type, movement, defaultSets, defaultReps, defaultRest]) => ({
   id,
@@ -63,12 +90,15 @@ export const exerciseLibrary: ExerciseDefinition[] = seeds.map(([id, name, prima
   defaultSets,
   defaultReps,
   defaultRest,
+  aliases: aliases[id] ?? [],
   setup: `Set up the ${equipment.toLowerCase()} so you can move through a comfortable, controlled range without losing your brace.`,
   instructions: [
     `Start in a stable position and brace before beginning the ${movement.toLowerCase()} motion.`,
     'Move with control, keeping the target muscles loaded rather than using momentum.',
     'Finish each rep in balance and stop if your form breaks down or you feel sharp pain.',
   ],
+  commonMistakes: ['Rushing the movement', 'Using a range of motion that cannot be controlled', 'Continuing after form breaks down'],
+  substitutions: seeds.filter((seed) => seed[6] === movement && seed[0] !== id).slice(0, 3).map((seed) => seed[0]),
 }));
 
 export const exerciseFilters = ['All', 'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core', 'Full body', 'Cardio', 'Bodyweight', 'Dumbbells', 'Barbell', 'Machines', 'Cables'];

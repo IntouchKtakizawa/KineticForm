@@ -5,13 +5,14 @@ import { ScheduledWorkout, WorkoutPlan } from '@/types/workout';
 const CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
 const SCOPE = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
 let accessToken = '';
+let accessTokenExpiresAt = 0;
 
 declare global {
   interface Window {
     google?: {
       accounts: {
         oauth2: {
-          initTokenClient: (options: { client_id: string; scope: string; callback: (response: { access_token?: string; error?: string }) => void }) => { requestAccessToken: (options?: { prompt?: string }) => void };
+          initTokenClient: (options: { client_id: string; scope: string; callback: (response: { access_token?: string; expires_in?: number; error?: string }) => void }) => { requestAccessToken: (options?: { prompt?: string }) => void };
           revoke: (token: string, callback: () => void) => void;
         };
       };
@@ -49,7 +50,7 @@ export async function connectGoogleCalendar() {
       scope: SCOPE,
       callback: (response) => {
         if (response.error || !response.access_token) reject(new Error(response.error || 'Google authorization was cancelled.'));
-        else { accessToken = response.access_token; resolve(accessToken); }
+        else { accessToken = response.access_token; accessTokenExpiresAt = Date.now() + (response.expires_in ?? 3600) * 1000; resolve(accessToken); }
       },
     });
     if (!client) reject(new Error('Google sign-in is unavailable.'));
@@ -58,11 +59,12 @@ export async function connectGoogleCalendar() {
 }
 
 async function calendarFetch(path: string, init?: RequestInit) {
-  if (!accessToken) throw new Error('Connect Google Calendar first.');
+  if (!accessToken || Date.now() >= accessTokenExpiresAt) { accessToken = ''; throw new Error('Your Google Calendar connection expired. Reconnect, then retry; the local workout is still safe.'); }
   const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', ...(init?.headers || {}) },
   });
+  if (response.status === 401) { accessToken = ''; accessTokenExpiresAt = 0; throw new Error('Google Calendar authorization expired. Reconnect and try again.'); }
   if (!response.ok) throw new Error((await response.json().catch(() => null))?.error?.message || 'Google Calendar request failed.');
   return response.status === 204 ? null : response.json();
 }
@@ -80,6 +82,7 @@ function eventBody(item: ScheduledWorkout, plan: WorkoutPlan) {
     recurrence: item.recurrence === 'weekly' && item.weekdays?.length ? [`RRULE:FREQ=WEEKLY;BYDAY=${item.weekdays.map((day) => ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][day]).join(',')}`] : undefined,
     reminders: { useDefault: true },
     source: { title: 'KineticForm', url: workoutUrl },
+    extendedProperties: { private: { kineticFormScheduleId: item.id, kineticFormPlanId: plan.id } },
   };
 }
 
@@ -105,6 +108,7 @@ export async function listGoogleWorkoutEvents() {
 export function disconnectGoogleCalendar() {
   if (accessToken && window.google?.accounts.oauth2) window.google.accounts.oauth2.revoke(accessToken, () => {});
   accessToken = '';
+  accessTokenExpiresAt = 0;
 }
 
 export function googleCalendarFallbackUrl(item: ScheduledWorkout, plan: WorkoutPlan) {

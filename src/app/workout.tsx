@@ -5,6 +5,7 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleShee
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing } from '@/constants/theme';
+import { exerciseLibrary } from '@/data/exercises';
 import { useWorkout } from '@/store/workout-store';
 import { ActiveExercise } from '@/types/workout';
 
@@ -14,7 +15,7 @@ function formatTime(totalSeconds: number) {
 }
 
 export default function WorkoutScreen() {
-  const { activeWorkout, updateSet, toggleSet, addSet, startRest, skipRest, finishWorkout, discardWorkout } = useWorkout();
+  const { hydrated, activeWorkout, history, updateSet, toggleSet, setSetKind, addSet, removeSet, skipExercise, substituteExercise, startRest, pauseRest, skipRest, resetRest, finishWorkout, discardWorkout } = useWorkout();
   const [now, setNow] = useState(0);
   const [enteredWithWorkout] = useState(activeWorkout !== null);
 
@@ -30,6 +31,7 @@ export default function WorkoutScreen() {
     return { complete, total: sets.length, percent: sets.length ? complete / sets.length : 0 };
   }, [activeWorkout]);
 
+  if (!hydrated) return <SafeAreaView style={styles.safe} />;
   if (!activeWorkout && !enteredWithWorkout) return <Redirect href="/" />;
   if (!activeWorkout) return null;
 
@@ -41,7 +43,7 @@ export default function WorkoutScreen() {
     { text: 'Keep going', style: 'cancel' },
     { text: 'Leave', style: 'destructive', onPress: () => { discardWorkout(); router.replace('/'); } },
   ]);
-  const finish = () => { finishWorkout(); router.replace('/progress'); };
+  const finish = () => Alert.alert('Finish this workout?', `${progress.complete} completed sets will be saved. You can undo set ticks before continuing.`, [{ text: 'Keep logging', style: 'cancel' }, { text: 'Finish and save', onPress: () => { finishWorkout(); router.replace('/progress'); } }]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -76,12 +78,22 @@ export default function WorkoutScreen() {
               key={exercise.id}
               exercise={exercise}
               index={index}
+              previous={history.find((session) => session.exercises.some((item) => item.name === exercise.name))?.exercises.find((item) => item.name === exercise.name)?.logs.filter((set) => set.completed).at(-1)}
               onUpdate={(setId, field, value) => updateSet(exercise.id, setId, field, value)}
               onToggle={(setId, wasCompleted) => {
                 toggleSet(exercise.id, setId);
                 if (!wasCompleted) startRest(exercise.restSeconds);
               }}
-              onAdd={() => addSet(exercise.id)}
+              onKind={(setId, kind) => setSetKind(exercise.id, setId, kind)}
+              onRemove={(setId) => removeSet(exercise.id, setId)}
+              onAdd={(copy) => addSet(exercise.id, copy)}
+              onSkip={() => Alert.alert('Skip this exercise?', 'It will be removed from this active workout only.', [{ text: 'Keep', style: 'cancel' }, { text: 'Skip', onPress: () => skipExercise(exercise.id) }])}
+              onSubstitute={() => {
+                const choices = exerciseLibrary.filter((item) => item.movement === exercise.movement && item.name !== exercise.name);
+                const replacement = choices[0];
+                if (replacement) Alert.alert('Use a similar movement?', `${replacement.name} trains a similar pattern, but it is not identical.`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Substitute', onPress: () => substituteExercise(exercise.id, replacement) }]);
+                else Alert.alert('No close substitute found', 'Use Skip, then add a different movement to the reusable workout later.');
+              }}
             />
           ))}
 
@@ -95,14 +107,15 @@ export default function WorkoutScreen() {
           </Pressable>
         </ScrollView>
 
-        {restRemaining > 0 ? (
+        {restRemaining > 0 || activeWorkout.pausedRestSeconds ? (
           <View style={styles.restBar}>
             <View style={styles.restIcon}><Ionicons name="timer" size={22} color={colors.accent} /></View>
             <View style={styles.restCopy}>
-              <Text style={styles.restLabel}>Take a break</Text>
-              <Text style={styles.restTime}>{formatTime(restRemaining)}</Text>
+              <Text style={styles.restLabel}>{activeWorkout.pausedRestSeconds ? 'Timer paused' : 'Take a break'}</Text>
+              <Text style={styles.restTime}>{formatTime(activeWorkout.pausedRestSeconds ?? restRemaining)}</Text>
             </View>
-            <Pressable onPress={() => startRest(restRemaining + 30)} style={styles.restAction}><Text style={styles.restActionText}>+30 sec</Text></Pressable>
+            <Pressable onPress={pauseRest} style={styles.restAction}><Text style={styles.restActionText}>{activeWorkout.pausedRestSeconds ? 'Resume' : 'Pause'}</Text></Pressable>
+            <Pressable onPress={() => activeWorkout.pausedRestSeconds ? resetRest(activeWorkout.pausedRestSeconds + 30) : startRest(restRemaining + 30)} style={styles.restAction}><Text style={styles.restActionText}>+30 sec</Text></Pressable>
             <Pressable onPress={skipRest} style={[styles.restAction, styles.skipAction]}><Text style={styles.skipText}>Skip</Text></Pressable>
           </View>
         ) : null}
@@ -111,12 +124,17 @@ export default function WorkoutScreen() {
   );
 }
 
-function ExerciseLogger({ exercise, index, onUpdate, onToggle, onAdd }: {
+function ExerciseLogger({ exercise, index, previous, onUpdate, onToggle, onKind, onRemove, onAdd, onSkip, onSubstitute }: {
   exercise: ActiveExercise;
   index: number;
   onUpdate: (setId: string, field: 'reps' | 'weight', value: string) => void;
   onToggle: (setId: string, wasCompleted: boolean) => void;
-  onAdd: () => void;
+  previous?: { reps: string; weight: string };
+  onKind: (setId: string, kind: 'warmup' | 'working') => void;
+  onRemove: (setId: string) => void;
+  onAdd: (copyPrevious?: boolean) => void;
+  onSkip: () => void;
+  onSubstitute: () => void;
 }) {
   const isCardio = exercise.type === 'Cardio';
   return (
@@ -128,6 +146,7 @@ function ExerciseLogger({ exercise, index, onUpdate, onToggle, onAdd }: {
           <Text style={styles.exerciseTarget}>{isCardio ? `${exercise.durationMinutes ?? 20} min${exercise.distanceKm ? ` · ${exercise.distanceKm} km` : ''}` : `${exercise.sets} sets × ${exercise.repTarget} reps · ${Math.round(exercise.restSeconds / 60)} min break`}</Text>
         </View>
       </View>
+      {previous ? <Text style={styles.previous}>Previous: {previous.weight || 'bodyweight'} × {previous.reps}</Text> : null}
 
       <View style={styles.setHeader}>
         <Text style={[styles.setHeading, styles.setNumber]}>{isCardio ? 'Round' : 'Set'}</Text>
@@ -138,7 +157,7 @@ function ExerciseLogger({ exercise, index, onUpdate, onToggle, onAdd }: {
 
       {exercise.logs.map((set, setIndex) => (
         <View key={set.id} style={[styles.setRow, set.completed && styles.completedRow]}>
-          <View style={styles.setBubble}><Text style={styles.setCount}>{setIndex + 1}</Text></View>
+          <Pressable accessibilityLabel={`Set ${setIndex + 1} type ${set.kind ?? 'working'}`} onPress={() => onKind(set.id, set.kind === 'warmup' ? 'working' : 'warmup')} onLongPress={() => onRemove(set.id)} style={[styles.setBubble, set.kind === 'warmup' && styles.warmupBubble]}><Text style={styles.setCount}>{set.kind === 'warmup' ? 'W' : setIndex + 1}</Text></Pressable>
           <TextInput
             accessibilityLabel={`Set ${setIndex + 1} ${isCardio ? 'distance' : 'weight'}`}
             value={set.weight}
@@ -170,10 +189,11 @@ function ExerciseLogger({ exercise, index, onUpdate, onToggle, onAdd }: {
         </View>
       ))}
 
-      <Pressable accessibilityRole="button" onPress={onAdd} style={styles.addSet}>
+      <View style={styles.quickActions}><Pressable accessibilityRole="button" onPress={() => onAdd(false)} style={styles.addSet}>
         <Ionicons name="add-circle-outline" size={19} color={colors.accent} />
-        <Text style={styles.addSetLabel}>Add another set</Text>
-      </Pressable>
+        <Text style={styles.addSetLabel}>Add set</Text>
+      </Pressable><Pressable onPress={() => onAdd(true)} style={styles.addSet}><Ionicons name="copy-outline" size={17} color={colors.accent} /><Text style={styles.addSetLabel}>Repeat last</Text></Pressable></View>
+      <View style={styles.exerciseActions}><Pressable onPress={onSubstitute}><Text style={styles.exerciseActionText}>Substitute</Text></Pressable><Pressable onPress={onSkip}><Text style={[styles.exerciseActionText, styles.skipExercise]}>Skip exercise</Text></Pressable></View>
     </View>
   );
 }
@@ -205,6 +225,7 @@ const styles = StyleSheet.create({
   exerciseCopy: { flex: 1 },
   exerciseName: { color: colors.text, fontSize: 17, fontWeight: '900', letterSpacing: -0.2 },
   exerciseTarget: { color: colors.textMuted, fontSize: 11, marginTop: 5 },
+  previous: { color: colors.success, fontSize: 11, fontWeight: '800', marginBottom: 7 },
   setHeader: { height: 32, flexDirection: 'row', alignItems: 'center', gap: 8 },
   setHeading: { flex: 1, color: colors.textMuted, textAlign: 'center', fontSize: 10, fontWeight: '800' },
   setNumber: { flex: 0, width: 38 },
@@ -212,13 +233,18 @@ const styles = StyleSheet.create({
   setRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: colors.line },
   completedRow: { backgroundColor: colors.successDim, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 13, borderTopColor: 'transparent' },
   setBubble: { width: 38, alignItems: 'center' },
+  warmupBubble: { backgroundColor: colors.warmDim, borderRadius: 10, paddingVertical: 6 },
   setCount: { color: colors.text, fontSize: 14, fontWeight: '900' },
   input: { flex: 1, minWidth: 0, height: 42, paddingHorizontal: 7, textAlign: 'center', borderRadius: 12, color: colors.text, backgroundColor: colors.ink, fontFamily: 'SpaceMono', fontSize: 15, borderWidth: 1, borderColor: colors.line },
   completedInput: { borderColor: colors.success, backgroundColor: colors.surface },
   check: { width: 50, height: 42, borderRadius: 13, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
   checked: { backgroundColor: colors.success, borderColor: colors.success },
+  quickActions: { flexDirection: 'row', justifyContent: 'center', gap: 12 },
   addSet: { height: 46, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
   addSetLabel: { color: colors.accent, fontSize: 13, fontWeight: '800' },
+  exerciseActions: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10 },
+  exerciseActionText: { color: colors.textMuted, fontSize: 11, fontWeight: '800' },
+  skipExercise: { color: colors.danger },
   completeButton: { minHeight: 74, backgroundColor: colors.accent, borderRadius: radius.md, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm },
   completeCopy: { flex: 1, marginLeft: 12 },
   completeTitle: { color: colors.white, fontSize: 17, fontWeight: '900' },

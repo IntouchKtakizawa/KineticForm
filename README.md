@@ -2,7 +2,9 @@
 
 KineticForm is a mobile-first workout planning and tracking platform built with React Native, Expo, TypeScript, and Expo Router. Workout data stays on the device by default; optional Google Calendar sync sends only the sessions a user chooses to schedule.
 
-## V0.2
+Calendar integration is app-managed rather than two-way synchronization: KineticForm creates and updates events linked to local sessions, but edits made directly in Google Calendar do not automatically return to KineticForm.
+
+## V1.0
 
 - Today view with a clear planned workout and resumable active session
 - Set, rep, and weight logging with haptic completion feedback
@@ -17,6 +19,10 @@ KineticForm is a mobile-first workout planning and tracking platform built with 
 - Reusable workout builder with ordering, duplication, notes, and strength/cardio fields
 - Reviewed PDF, DOCX, plain-text, and pasted-plan import
 - Single-workout, weekly, monthly, full-program, and history PDF-style exports
+- Versioned JSON backup with validation, merge/replace restore, and recovery snapshots
+- Active-workout recovery, warm-up sets, previous-set context, repeat/undo controls, substitutions, and a pausable rest timer
+- Program grouping, optional onboarding preferences, raw history CSV, richer progress metrics, and expanded exercise aliases
+- Safer imports with file limits, scanned-PDF detection, original-line review, and visible unmatched entries
 
 ## Google Calendar setup
 

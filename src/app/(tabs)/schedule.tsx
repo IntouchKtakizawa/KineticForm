@@ -5,7 +5,7 @@ import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, Vie
 
 import { Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/constants/theme';
-import { connectGoogleCalendar, createGoogleEvent, deleteGoogleEvent, googleCalendarConfigured, googleCalendarFallbackUrl, listGoogleWorkoutEvents, updateGoogleEvent } from '@/services/google-calendar';
+import { connectGoogleCalendar, createGoogleEvent, deleteGoogleEvent, disconnectGoogleCalendar, googleCalendarConfigured, googleCalendarFallbackUrl, listGoogleWorkoutEvents, updateGoogleEvent } from '@/services/google-calendar';
 import { useWorkout } from '@/store/workout-store';
 import { ScheduledWorkout } from '@/types/workout';
 
@@ -76,8 +76,8 @@ export default function ScheduleScreen() {
         const event = item.googleEventId ? await updateGoogleEvent(item, plan) : await createGoogleEvent(item, plan);
         item = { ...item, googleEventId: event.id, googleEventUrl: event.htmlLink };
       } catch (error) {
-        setBusy(false);
-        return Alert.alert('Google Calendar could not be updated', error instanceof Error ? error.message : 'Try reconnecting.');
+        setConnected(false);
+        Alert.alert('Saved locally', `${error instanceof Error ? error.message : 'Google Calendar could not be updated.'} Reconnect later to update the calendar event.`);
       }
       setBusy(false);
     }
@@ -89,7 +89,7 @@ export default function ScheduleScreen() {
   const remove = (item: ScheduledWorkout) => Alert.alert('Remove this workout?', `${item.title} will be removed from your schedule.`, [
     { text: 'Keep', style: 'cancel' },
     { text: 'Remove', style: 'destructive', onPress: async () => {
-      if (item.googleEventId && connected) await deleteGoogleEvent(item.googleEventId).catch(() => undefined);
+      if (item.googleEventId && connected) await deleteGoogleEvent(item.googleEventId).catch(() => Alert.alert('Removed locally', 'The Google event could not be removed. Reconnect and remove it in Google Calendar.'));
       removeSchedule(item.id);
     } },
   ]);
@@ -111,6 +111,7 @@ export default function ScheduleScreen() {
     catch (error) { Alert.alert('Google Calendar setup', error instanceof Error ? error.message : 'Connection failed.'); }
     finally { setBusy(false); }
   };
+  const disconnect = () => { disconnectGoogleCalendar(); setConnected(false); Alert.alert('Disconnected', 'Existing Google events remain in your calendar. Local schedules are unchanged.'); };
 
   return (
     <Screen>
@@ -125,7 +126,7 @@ export default function ScheduleScreen() {
           <Text style={styles.calendarTitle}>{connected ? 'Google Calendar connected' : 'Connect Google Calendar'}</Text>
           <Text style={styles.calendarText}>{connected ? 'New workouts can sync automatically.' : googleCalendarConfigured ? 'See workouts beside school, work, and life.' : 'OAuth setup is required for direct sync. You can still add events with one tap.'}</Text>
         </View>
-        {googleCalendarConfigured ? <Pressable disabled={busy || connected} onPress={connect} style={[styles.connectButton, connected && styles.connectedButton]}><Text style={styles.connectText}>{connected ? 'Connected' : 'Connect'}</Text></Pressable> : null}
+        {googleCalendarConfigured ? <Pressable disabled={busy} onPress={connected ? disconnect : connect} style={[styles.connectButton, connected && styles.connectedButton]}><Text style={styles.connectText}>{connected ? 'Disconnect' : 'Connect'}</Text></Pressable> : null}
       </View>
 
       {showForm ? (
@@ -162,7 +163,7 @@ export default function ScheduleScreen() {
                 <View style={styles.statusRow}><View style={[styles.statusDot, status === 'completed' && styles.completedDot, status === 'missed' && styles.missedDot]} /><Text style={styles.statusText}>{status}{item.recurrence === 'weekly' ? ' · repeats weekly' : ''}</Text></View>
               </View>
               <View style={styles.eventActions}>
-                {status === 'upcoming' ? <Pressable onPress={() => { if (plan) { startWorkout(plan.id); router.push('/workout'); } }} style={styles.playButton}><Ionicons name="play" size={18} color={colors.white} /></Pressable> : null}
+                {status === 'upcoming' ? <Pressable onPress={() => { if (plan) { startWorkout(plan.id, item.id); router.push('/workout'); } }} style={styles.playButton}><Ionicons name="play" size={18} color={colors.white} /></Pressable> : null}
                 <Pressable onPress={() => editItem(item)} style={styles.iconAction}><Ionicons name="create-outline" size={18} color={colors.textMuted} /></Pressable>
                 <Pressable onPress={() => remove(item)} style={styles.iconAction}><Ionicons name="trash-outline" size={18} color={colors.danger} /></Pressable>
               </View>

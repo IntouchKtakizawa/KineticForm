@@ -19,9 +19,9 @@ export function generateMetadata(): Metadata {
 
 export default function TodayScreen() {
   const { workout } = useLocalSearchParams<{ workout?: string }>();
-  const { activeWorkout, displayName, startWorkout, plans, schedule } = useWorkout();
+  const { hydrated, activeWorkout, displayName, startWorkout, plans, schedule, onboardingComplete } = useWorkout();
   const [referenceNow] = useState(() => Date.now());
-  const plan = plans.find((item) => item.id === workout) ?? plans[0];
+  const plan = plans.find((item) => item.id === activeWorkout?.planId) ?? plans.find((item) => item.id === workout) ?? plans[0];
   const upcoming = schedule.filter((item) => item.status === 'upcoming' && new Date(item.startISO).getTime() >= referenceNow).sort((a, b) => a.startISO.localeCompare(b.startISO))[0];
   const completedSets = activeWorkout?.exercises.flatMap((exercise) => exercise.logs).filter((set) => set.completed).length ?? 0;
   const totalSets = activeWorkout?.exercises.reduce((sum, exercise) => sum + exercise.logs.length, 0) ?? 0;
@@ -35,7 +35,7 @@ export default function TodayScreen() {
     if (workout && plans.some((item) => item.id === workout)) startWorkout(workout);
   }, [workout, plans, startWorkout]);
 
-  if (!plan) return null;
+  if (!hydrated || !plan) return <Screen><Text style={styles.prompt}>Loading your workouts…</Text></Screen>;
 
   return (
     <Screen>
@@ -48,6 +48,8 @@ export default function TodayScreen() {
       </View>
 
       <DateStrip />
+
+      {!onboardingComplete ? <Pressable onPress={() => router.push('/onboarding' as never)} style={styles.setupCard}><View><Text style={styles.setupTitle}>Set training preferences</Text><Text style={styles.setupText}>Optional · about one minute · editable later</Text></View><Ionicons name="arrow-forward" size={20} color={colors.accent} /></Pressable> : null}
 
       {upcoming ? <Pressable onPress={() => router.push('/schedule' as never)} style={styles.upcomingCard}>
         <View style={styles.upcomingIcon}><Ionicons name="calendar" size={21} color={colors.accent} /></View>
@@ -108,6 +110,9 @@ const styles = StyleSheet.create({
   greeting: { color: colors.text, fontSize: 26, fontWeight: '900', letterSpacing: -0.8 },
   prompt: { color: colors.textMuted, fontSize: 15, marginTop: 2 },
   upcomingCard: { minHeight: 78, marginTop: 13, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, padding: 13, flexDirection: 'row', alignItems: 'center' },
+  setupCard: { minHeight: 64, marginTop: 13, borderRadius: 17, backgroundColor: colors.accentDim, paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  setupTitle: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  setupText: { color: colors.textMuted, fontSize: 10, marginTop: 3 },
   upcomingIcon: { width: 45, height: 45, borderRadius: 15, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center', marginRight: 11 },
   upcomingCopy: { flex: 1 },
   upcomingLabel: { color: colors.accent, fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },

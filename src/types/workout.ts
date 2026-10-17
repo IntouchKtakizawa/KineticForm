@@ -3,6 +3,7 @@ export type SetLog = {
   reps: string;
   weight: string;
   completed: boolean;
+  kind?: 'warmup' | 'working';
 };
 
 export type Exercise = {
@@ -19,6 +20,8 @@ export type Exercise = {
   notes?: string;
   durationMinutes?: number;
   distanceKm?: number;
+  importConfidence?: 'matched' | 'unmatched';
+  originalText?: string;
 };
 
 export type ExerciseDefinition = {
@@ -35,6 +38,18 @@ export type ExerciseDefinition = {
   defaultReps: string;
   defaultRest: number;
   custom?: boolean;
+  aliases?: string[];
+  commonMistakes?: string[];
+  substitutions?: string[];
+};
+
+export type Program = {
+  id: string;
+  name: string;
+  description: string;
+  workoutIds: string[];
+  trainingDays?: number[];
+  createdAt: number;
 };
 
 export type WorkoutPlan = {
@@ -70,6 +85,8 @@ export type ActiveWorkout = {
   name: string;
   startedAt: number;
   restEndAt: number | null;
+  pausedRestSeconds?: number | null;
+  scheduledWorkoutId?: string;
   exercises: ActiveExercise[];
 };
 
@@ -85,6 +102,7 @@ export type WorkoutSession = {
 };
 
 export type WorkoutState = {
+  schemaVersion: 3;
   activeWorkout: ActiveWorkout | null;
   history: WorkoutSession[];
   displayName: string;
@@ -92,4 +110,20 @@ export type WorkoutState = {
   plans: WorkoutPlan[];
   customExercises: ExerciseDefinition[];
   schedule: ScheduledWorkout[];
+  programs: Program[];
+  onboardingComplete: boolean;
+  preferences: {
+    goal: string;
+    experience: string;
+    equipment: string[];
+    trainingDays: number[];
+    sessionMinutes: number;
+  };
+};
+
+export type KineticFormBackup = {
+  app: 'KineticForm';
+  schemaVersion: 3;
+  exportedAt: string;
+  data: WorkoutState;
 };

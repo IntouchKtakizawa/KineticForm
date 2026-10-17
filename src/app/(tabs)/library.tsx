@@ -24,7 +24,7 @@ export default function LibraryScreen() {
   const results = useMemo(() => {
     const search = query.trim().toLowerCase();
     return allExercises.filter((exercise) => {
-      const haystack = [exercise.name, exercise.primaryMuscle, exercise.secondaryMuscles.join(' '), exercise.equipment, exercise.type, exercise.movement].join(' ').toLowerCase();
+      const haystack = [exercise.name, ...(exercise.aliases ?? []), exercise.primaryMuscle, exercise.secondaryMuscles.join(' '), exercise.equipment, exercise.type, exercise.movement].join(' ').toLowerCase();
       const matchesQuery = !search || search.split(/\s+/).every((word) => haystack.includes(word));
       const matchesFilter = filter === 'All' || exercise.primaryMuscle === filter || exercise.equipment === filter || exercise.type === filter;
       return matchesQuery && matchesFilter;
@@ -84,6 +84,7 @@ export default function LibraryScreen() {
 
       <View style={styles.resultsHeader}><Text style={styles.resultsTitle}>{filter === 'All' ? 'All exercises' : filter}</Text><Text style={styles.resultCount}>{results.length} results</Text></View>
       <View style={styles.list}>
+        {!results.length ? <View style={styles.empty}><Ionicons name="search-outline" size={28} color={colors.textMuted} /><Text style={styles.emptyTitle}>No matching movement</Text><Text style={styles.emptyText}>Try fewer words, clear the filter, or create a custom exercise.</Text></View> : null}
         {results.map((exercise) => (
           <Pressable key={exercise.id} onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: exercise.id } } as never)} style={({ pressed }) => [styles.exerciseCard, pressed && styles.pressed]}>
             <View style={[styles.exerciseIcon, { backgroundColor: muscleColors[exercise.primaryMuscle] ?? colors.accentDim }]}><Ionicons name={exercise.type === 'Cardio' ? 'pulse' : 'barbell'} size={22} color={colors.text} /></View>
@@ -130,4 +131,7 @@ const styles = StyleSheet.create({
   exerciseMeta: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
   exerciseType: { color: colors.accent, fontSize: 10, fontWeight: '800', marginTop: 3 },
   pressed: { opacity: 0.7 },
+  empty: { padding: 28, borderRadius: 19, backgroundColor: colors.surface, alignItems: 'center' },
+  emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '900', marginTop: 10 },
+  emptyText: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 5 },
 });

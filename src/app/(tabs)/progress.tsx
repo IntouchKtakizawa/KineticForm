@@ -10,9 +10,14 @@ function formatDate(timestamp: number) {
 }
 
 export default function ProgressScreen() {
-  const { history } = useWorkout();
+  const { history, schedule, weightUnit } = useWorkout();
   const totalSets = history.reduce((sum, session) => sum + session.completedSets, 0);
   const totalMinutes = Math.round(history.reduce((sum, session) => sum + session.durationSeconds, 0) / 60);
+  const recent = history.slice(0, 8).reverse();
+  const maxVolume = Math.max(1, ...recent.map((session) => session.totalVolume));
+  const planned = schedule.filter((item) => item.status !== 'missed').length;
+  const completedPlanned = schedule.filter((item) => item.status === 'completed').length;
+  const bestSet = history.flatMap((session) => session.exercises).flatMap((exercise) => exercise.logs.map((set) => ({ name: exercise.name, weight: Number(set.weight) || 0, reps: Number(set.reps) || 0 }))).sort((a, b) => b.weight - a.weight)[0];
 
   return (
     <Screen>
@@ -37,6 +42,14 @@ export default function ProgressScreen() {
           <Text style={styles.summaryLabel}>minutes</Text>
         </View>
       </View>
+
+      <SectionHeader title="Training volume" action={`Last ${recent.length} workouts`} />
+      <View style={styles.chartCard} accessibilityLabel={`Training volume for the last ${recent.length} workouts. Highest ${maxVolume} ${weightUnit} repetitions.`}>
+        {recent.length ? <View style={styles.chart}>{recent.map((session) => <View key={session.id} style={styles.barColumn}><View style={[styles.bar, { height: Math.max(8, (session.totalVolume / maxVolume) * 100) }]} /><Text style={styles.barLabel}>{formatDate(session.completedAt)}</Text></View>)}</View> : <Text style={styles.empty}>Complete a workout to see a traceable volume trend.</Text>}
+        <Text style={styles.chartNote}>Volume = completed working-set weight × reps. Bodyweight, timed, and distance work are excluded from this comparison.</Text>
+      </View>
+
+      <View style={styles.insightRow}><View style={styles.insight}><Text style={styles.insightValue}>{completedPlanned}/{planned}</Text><Text style={styles.insightLabel}>planned sessions completed</Text></View><View style={styles.insight}><Text style={styles.insightValue}>{bestSet?.weight ? `${bestSet.weight} ${weightUnit}` : '—'}</Text><Text style={styles.insightLabel}>{bestSet?.name ?? 'No loaded sets yet'}{bestSet?.reps ? ` × ${bestSet.reps}` : ''}</Text></View></View>
 
       <SectionHeader title="Past workouts" />
       <View style={styles.historyList}>
@@ -77,4 +90,15 @@ const styles = StyleSheet.create({
   historyName: { color: colors.text, fontSize: 15, fontWeight: '800' },
   historyDate: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
   latest: { color: colors.accent, fontSize: 10, fontWeight: '900' },
+  chartCard: { padding: 16, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
+  chart: { height: 142, flexDirection: 'row', alignItems: 'flex-end', gap: 7 },
+  barColumn: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
+  bar: { width: '72%', maxWidth: 40, borderRadius: 8, backgroundColor: colors.accent },
+  barLabel: { color: colors.textMuted, fontSize: 8, marginTop: 6 },
+  chartNote: { color: colors.textMuted, fontSize: 10, lineHeight: 15, marginTop: 13 },
+  empty: { color: colors.textMuted, fontSize: 12, paddingVertical: 30, textAlign: 'center' },
+  insightRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  insight: { flex: 1, minHeight: 85, borderRadius: radius.md, backgroundColor: colors.surface, padding: 13, justifyContent: 'center' },
+  insightValue: { color: colors.text, fontSize: 20, fontWeight: '900' },
+  insightLabel: { color: colors.textMuted, fontSize: 10, lineHeight: 14, marginTop: 5 },
 });

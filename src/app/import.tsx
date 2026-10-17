@@ -34,6 +34,7 @@ export default function ImportScreen() {
     setBusy(true);
     try {
       const asset = result.assets[0];
+      if (asset.size && asset.size > 12 * 1024 * 1024) throw new Error('This file is over 12 MB. Export a smaller copy or paste the workout text.');
       const extracted = await extractDocumentText({ uri: asset.uri, name: asset.name, mimeType: asset.mimeType, file: 'file' in asset ? asset.file : undefined });
       setFileName(asset.name);
       setText(extracted);
@@ -74,7 +75,8 @@ export default function ImportScreen() {
           {preview.map((workout) => <View key={workout.id} style={[styles.workoutCard, !workout.selected && styles.unselected]}>
             <View style={styles.workoutTop}><Pressable onPress={() => updateWorkout(workout.id, 'selected', !workout.selected)}><Ionicons name={workout.selected ? 'checkbox' : 'square-outline'} size={25} color={colors.accent} /></Pressable><TextInput value={workout.name} onChangeText={(value) => updateWorkout(workout.id, 'name', value)} style={styles.workoutName} /></View>
             {workout.exercises.map((exercise) => <View key={exercise.id} style={styles.exerciseRow}>
-              <View style={styles.exerciseTop}><TextInput value={exercise.name} onChangeText={(value) => updateExercise(workout.id, exercise.id, 'name', value)} style={styles.exerciseName} /><Pressable onPress={() => removeExercise(workout.id, exercise.id)}><Ionicons name="close-circle" size={21} color={colors.danger} /></Pressable></View>
+              <View style={styles.exerciseTop}><TextInput value={exercise.name} onChangeText={(value) => updateExercise(workout.id, exercise.id, 'name', value)} style={styles.exerciseName} />{exercise.importConfidence === 'unmatched' ? <Text style={styles.unmatched}>CHECK MATCH</Text> : null}<Pressable onPress={() => removeExercise(workout.id, exercise.id)}><Ionicons name="close-circle" size={21} color={colors.danger} /></Pressable></View>
+              {exercise.originalText ? <Text style={styles.original}>Original: {exercise.originalText}</Text> : null}
               <View style={styles.configRow}><View style={styles.field}><Text style={styles.fieldLabel}>Sets</Text><TextInput value={String(exercise.sets)} onChangeText={(value) => updateExercise(workout.id, exercise.id, 'sets', value)} keyboardType="number-pad" style={styles.fieldInput} /></View><View style={styles.field}><Text style={styles.fieldLabel}>Reps</Text><TextInput value={exercise.repTarget} onChangeText={(value) => updateExercise(workout.id, exercise.id, 'repTarget', value)} style={styles.fieldInput} /></View><View style={styles.field}><Text style={styles.fieldLabel}>Weight</Text><TextInput value={String(exercise.suggestedWeight || '')} onChangeText={(value) => updateExercise(workout.id, exercise.id, 'suggestedWeight', value)} keyboardType="decimal-pad" style={styles.fieldInput} /></View><View style={styles.field}><Text style={styles.fieldLabel}>Rest</Text><TextInput value={String(exercise.restSeconds)} onChangeText={(value) => updateExercise(workout.id, exercise.id, 'restSeconds', value)} keyboardType="number-pad" style={styles.fieldInput} /></View></View>
             </View>)}
           </View>)}
@@ -115,6 +117,8 @@ const styles = StyleSheet.create({
   exerciseRow: { paddingVertical: 12, borderTopWidth: 1, borderColor: colors.line },
   exerciseTop: { flexDirection: 'row', alignItems: 'center' },
   exerciseName: { flex: 1, color: colors.text, fontSize: 13, fontWeight: '800', paddingVertical: 5 },
+  unmatched: { color: '#A86600', fontSize: 8, fontWeight: '900', backgroundColor: colors.warmDim, paddingHorizontal: 7, paddingVertical: 5, borderRadius: 8, marginRight: 6 },
+  original: { color: colors.textMuted, fontSize: 9, marginBottom: 4 },
   configRow: { flexDirection: 'row', gap: 7, marginTop: 7 },
   field: { flex: 1 },
   fieldLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '800', textAlign: 'center', marginBottom: 4 },

@@ -6,10 +6,10 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useWorkout } from '@/store/workout-store';
-import { exportWorkoutPdf } from '@/utils/export-workout';
+import { downloadHistoryCsv, exportWorkoutPdf } from '@/utils/export-workout';
 
 export default function ProgramsScreen() {
-  const { plans, history, schedule, startWorkout, duplicatePlan, removePlan } = useWorkout();
+  const { plans, programs, history, schedule, startWorkout, duplicatePlan, removePlan, saveProgram } = useWorkout();
   const [referenceNow] = useState(() => Date.now());
   const scheduledPlans = (days: number) => {
     const end = referenceNow + days * 86400000;
@@ -29,6 +29,10 @@ export default function ProgramsScreen() {
         <Pressable onPress={() => exportWorkoutPdf('Workout History', [], history)} style={[styles.toolCard, styles.historyCard]}><View style={[styles.toolIcon, styles.historyIcon]}><Ionicons name="time" size={22} color="#C87500" /></View><Text style={styles.toolTitle}>History</Text><Text style={styles.toolText}>Export training log</Text></Pressable>
       </View>
       <View style={styles.planExports}><Pressable onPress={() => exportWorkoutPdf('Weekly Training Plan', scheduledPlans(7))} style={styles.planExportButton}><Ionicons name="calendar-outline" size={18} color={colors.accent} /><Text style={styles.planExportText}>Weekly PDF</Text></Pressable><Pressable onPress={() => exportWorkoutPdf('Monthly Training Plan', scheduledPlans(30))} style={styles.planExportButton}><Ionicons name="calendar-number-outline" size={18} color={colors.accent} /><Text style={styles.planExportText}>Monthly PDF</Text></Pressable></View>
+      <Pressable onPress={() => { try { downloadHistoryCsv(history); } catch (error) { Alert.alert('CSV export', error instanceof Error ? error.message : 'Export failed.'); } }} style={[styles.planExportButton, { marginTop: 9 }]}><Ionicons name="grid-outline" size={18} color={colors.accent} /><Text style={styles.planExportText}>Download raw history CSV</Text></Pressable>
+
+      <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Programs</Text><Pressable onPress={() => saveProgram({ id: `program-${Date.now()}`, name: `My ${plans.length}-workout program`, description: 'A flexible collection of reusable workouts. Schedule individual sessions when ready.', workoutIds: plans.map((plan) => plan.id), createdAt: Date.now() })}><Text style={styles.createProgram}>Create from workouts</Text></Pressable></View>
+      {programs.length ? <View style={styles.programList}>{programs.map((program) => <View key={program.id} style={styles.programCard}><Text style={styles.programName}>{program.name}</Text><Text style={styles.toolText}>{program.workoutIds.length} workouts · flexible schedule</Text><Text style={styles.programDescription}>{program.description}</Text></View>)}</View> : <View style={styles.programEmpty}><Text style={styles.toolText}>Group templates into a reusable program without changing completed history.</Text></View>}
 
       <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Saved workouts</Text><Text style={styles.count}>{plans.length} templates</Text></View>
       <View style={styles.list}>
@@ -91,4 +95,10 @@ const styles = StyleSheet.create({
   actionButton: { height: 44, paddingHorizontal: 13, borderRadius: 14, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 5 },
   actionText: { color: colors.text, fontSize: 12, fontWeight: '800' },
   iconButton: { width: 42, height: 44, borderRadius: 14, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  createProgram: { color: colors.accent, fontSize: 11, fontWeight: '900' },
+  programList: { gap: 9 },
+  programCard: { padding: 15, borderRadius: radius.md, backgroundColor: colors.accentDim },
+  programName: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  programDescription: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 8 },
+  programEmpty: { padding: 15, borderRadius: radius.md, backgroundColor: colors.surface },
 });

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,6 +24,7 @@ export default function BuilderScreen() {
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(exercises.length === 0);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [removed, setRemoved] = useState<{ exercise: Exercise; index: number } | null>(null);
   const allExercises = useMemo(() => [...customExercises, ...exerciseLibrary], [customExercises]);
   const searchResults = allExercises.filter((exercise) => !search || [exercise.name, exercise.primaryMuscle, exercise.equipment].join(' ').toLowerCase().includes(search.toLowerCase())).slice(0, 12);
 
@@ -44,10 +46,17 @@ export default function BuilderScreen() {
   const duplicate = (exercise: Exercise) => setExercises((items) => [...items, { ...exercise, id: `${exercise.id}-copy-${Date.now()}` }]);
   const addExercise = (exercise: ExerciseDefinition) => { setExercises((items) => [...items, fromDefinition(exercise)]); setShowSearch(false); setSearch(''); };
 
+  useEffect(() => {
+    if (existing || requestedExercise) return;
+    AsyncStorage.getItem('@kineticform/builder-draft').then((raw) => { if (!raw) return; try { const draft = JSON.parse(raw) as { name?: string; notes?: string; duration?: string; exercises?: Exercise[] }; if (draft.name) setName(draft.name); if (draft.notes) setNotes(draft.notes); if (draft.duration) setDuration(draft.duration); if (draft.exercises?.length) { setExercises(draft.exercises); setShowSearch(false); } } catch { /* Ignore an invalid draft. */ } });
+  }, [existing, requestedExercise]);
+  useEffect(() => { if (!existing) AsyncStorage.setItem('@kineticform/builder-draft', JSON.stringify({ name, notes, duration, exercises })); }, [existing, name, notes, duration, exercises]);
+
   const save = (scheduleAfter = false) => {
     if (!name.trim() || !exercises.length) return Alert.alert('Workout needs a little more', 'Add a name and at least one exercise.');
     const plan: WorkoutPlan = { id: existing?.id ?? `plan-${Date.now()}`, name: name.trim(), focus: Array.from(new Set(exercises.map((item) => item.muscle))).slice(0, 3).join(' · '), durationMinutes: Math.max(10, Number(duration) || 45), exercises, notes: notes.trim(), createdAt: existing?.createdAt ?? Date.now() };
     savePlan(plan);
+    AsyncStorage.removeItem('@kineticform/builder-draft');
     router.replace((scheduleAfter ? '/schedule' : '/programs') as never);
   };
 
@@ -66,8 +75,9 @@ export default function BuilderScreen() {
           <View style={styles.exerciseTop}><View style={styles.dragHandle}><Ionicons name="reorder-three" size={22} color={colors.textMuted} /></View><View style={styles.exerciseCopy}><Text style={styles.exerciseName}>{exercise.name}</Text><Text style={styles.exerciseMeta}>{exercise.muscle} · {exercise.equipment ?? 'Equipment'}</Text></View><View style={styles.reorder}><Pressable disabled={index === 0} onPress={() => move(index, -1)} style={styles.miniButton}><Ionicons name="chevron-up" size={18} color={colors.textMuted} /></Pressable><Pressable disabled={index === exercises.length - 1} onPress={() => move(index, 1)} style={styles.miniButton}><Ionicons name="chevron-down" size={18} color={colors.textMuted} /></Pressable></View></View>
           {exercise.type === 'Cardio' ? <View style={styles.configRow}><View style={styles.configGroup}><Text style={styles.configLabel}>Minutes</Text><TextInput value={String(exercise.durationMinutes ?? 20)} onChangeText={(value) => updateExercise(exercise.id, 'durationMinutes', Number(value) || 0)} keyboardType="number-pad" style={styles.configInput} /></View><View style={styles.configGroup}><Text style={styles.configLabel}>Distance km</Text><TextInput value={String(exercise.distanceKm || '')} onChangeText={(value) => updateExercise(exercise.id, 'distanceKm', Number(value) || 0)} keyboardType="decimal-pad" style={styles.configInput} /></View><View style={styles.configGroup}><Text style={styles.configLabel}>Rest sec</Text><TextInput value={String(exercise.restSeconds)} onChangeText={(value) => updateExercise(exercise.id, 'restSeconds', Number(value) || 0)} keyboardType="number-pad" style={styles.configInput} /></View></View> : <View style={styles.configRow}><View style={styles.configGroup}><Text style={styles.configLabel}>Sets</Text><TextInput value={String(exercise.sets)} onChangeText={(value) => updateExercise(exercise.id, 'sets', Number(value) || 0)} keyboardType="number-pad" style={styles.configInput} /></View><View style={styles.configGroup}><Text style={styles.configLabel}>Reps</Text><TextInput value={exercise.repTarget} onChangeText={(value) => updateExercise(exercise.id, 'repTarget', value)} style={styles.configInput} /></View><View style={styles.configGroup}><Text style={styles.configLabel}>Weight</Text><TextInput value={String(exercise.suggestedWeight || '')} onChangeText={(value) => updateExercise(exercise.id, 'suggestedWeight', Number(value) || 0)} keyboardType="decimal-pad" style={styles.configInput} /></View><View style={styles.configGroup}><Text style={styles.configLabel}>Rest sec</Text><TextInput value={String(exercise.restSeconds)} onChangeText={(value) => updateExercise(exercise.id, 'restSeconds', Number(value) || 0)} keyboardType="number-pad" style={styles.configInput} /></View></View>}
           <TextInput value={exercise.notes ?? ''} onChangeText={(value) => updateExercise(exercise.id, 'notes', value)} placeholder="Exercise notes (optional)" placeholderTextColor={colors.textMuted} style={styles.noteInput} />
-          <View style={styles.cardActions}><Pressable onPress={() => duplicate(exercise)} style={styles.cardAction}><Ionicons name="copy-outline" size={17} color={colors.textMuted} /><Text style={styles.cardActionText}>Duplicate</Text></Pressable><Pressable onPress={() => setExercises((items) => items.filter((item) => item.id !== exercise.id))} style={styles.cardAction}><Ionicons name="trash-outline" size={17} color={colors.danger} /><Text style={[styles.cardActionText, styles.deleteText]}>Remove</Text></Pressable></View>
+          <View style={styles.cardActions}><Pressable onPress={() => duplicate(exercise)} style={styles.cardAction}><Ionicons name="copy-outline" size={17} color={colors.textMuted} /><Text style={styles.cardActionText}>Duplicate</Text></Pressable><Pressable onPress={() => { setRemoved({ exercise, index }); setExercises((items) => items.filter((item) => item.id !== exercise.id)); }} style={styles.cardAction}><Ionicons name="trash-outline" size={17} color={colors.danger} /><Text style={[styles.cardActionText, styles.deleteText]}>Remove</Text></Pressable></View>
         </View>)}</View>
+        {removed ? <View style={styles.undoBar}><Text style={styles.undoText}>{removed.exercise.name} removed</Text><Pressable onPress={() => { setExercises((items) => { const next = [...items]; next.splice(removed.index, 0, removed.exercise); return next; }); setRemoved(null); }}><Text style={styles.undoAction}>Undo</Text></Pressable></View> : null}
         <Pressable onPress={() => save(false)} style={styles.primaryButton}><Text style={styles.primaryText}>Save workout</Text></Pressable>
         <Pressable onPress={() => save(true)} style={styles.secondaryButton}><Ionicons name="calendar-outline" size={19} color={colors.accent} /><Text style={styles.secondaryText}>Save and schedule</Text></Pressable>
       </ScrollView>
@@ -123,4 +133,7 @@ const styles = StyleSheet.create({
   primaryText: { color: colors.white, fontSize: 16, fontWeight: '900' },
   secondaryButton: { height: 54, borderRadius: 17, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', marginTop: 8, borderWidth: 1, borderColor: colors.accentSoft },
   secondaryText: { color: colors.accent, fontSize: 14, fontWeight: '900' },
+  undoBar: { minHeight: 48, borderRadius: 14, backgroundColor: colors.warmDim, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, marginTop: 10 },
+  undoText: { color: colors.text, fontSize: 12, fontWeight: '800' },
+  undoAction: { color: colors.accent, fontSize: 12, fontWeight: '900' },
 });

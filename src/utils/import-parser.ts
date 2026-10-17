@@ -7,8 +7,8 @@ export type ParsedWorkout = { id: string; name: string; exercises: Exercise[]; s
 
 function matchExercise(name: string) {
   const normalized = name.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
-  return exerciseLibrary.find((exercise) => exercise.name.toLowerCase().replace(/[^a-z0-9 ]/g, '') === normalized)
-    ?? exerciseLibrary.find((exercise) => normalized.includes(exercise.name.toLowerCase().replace(/[^a-z0-9 ]/g, '')) || exercise.name.toLowerCase().includes(normalized));
+  return exerciseLibrary.find((exercise) => [exercise.name, ...(exercise.aliases ?? [])].some((value) => value.toLowerCase().replace(/[^a-z0-9 ]/g, '') === normalized))
+    ?? exerciseLibrary.find((exercise) => [exercise.name, ...(exercise.aliases ?? [])].some((value) => normalized.includes(value.toLowerCase().replace(/[^a-z0-9 ]/g, '')) || value.toLowerCase().includes(normalized)));
 }
 
 export function parseWorkoutText(text: string): ParsedWorkout[] {
@@ -35,6 +35,8 @@ export function parseWorkoutText(text: string): ParsedWorkout[] {
         repTarget: reps.replace('-', '–'),
         suggestedWeight: Number(weightMatch?.[1] || 0),
         restSeconds: restMatch ? Number(restMatch[1]) * (restMatch[2].toLowerCase().startsWith('min') ? 60 : 1) : found?.defaultRest ?? 60,
+        importConfidence: found ? 'matched' : 'unmatched',
+        originalText: line,
       });
     } else if (/day|workout|push|pull|legs|upper|lower|full body/i.test(line) && line.length < 60) {
       if (current.exercises.length) workouts.push(current);
@@ -78,7 +80,9 @@ export async function extractDocumentText(asset: { uri: string; name: string; mi
       if (currentLine.length) lines.push(currentLine.join(' '));
       pages.push(lines.join('\n'));
     }
-    return pages.join('\n');
+    const extracted = pages.join('\n').trim();
+    if (!extracted) throw new Error('This PDF has no usable text. It may be scanned. OCR is not performed because that could require uploading a private document. Paste the text instead.');
+    return extracted;
   }
   return new TextDecoder().decode(buffer);
 }

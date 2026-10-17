@@ -34,6 +34,7 @@ export default function ProfileScreen() {
 
       <SectionHeader title="Workout settings" />
       <View style={styles.group}>
+        <Pressable onPress={() => router.push('/onboarding' as never)}><ListRow icon="options-outline" title="Training preferences" detail="Goal, equipment, days, and session length" /></Pressable>
         <ListRow icon="calendar-outline" title="Workout plan" detail="Upper body · 5 moves" />
         <ListRow icon="scale-outline" title="Weight unit" detail="Choose kilograms or pounds" trailing={
           <Pressable accessibilityRole="button" accessibilityLabel={`Weight unit: ${weightUnit}. Tap to change.`} onPress={toggleWeightUnit} style={styles.unitToggle}>
@@ -44,10 +45,15 @@ export default function ProfileScreen() {
         <ListRow icon="timer-outline" title="Rest timer" detail="Starts when you finish a set" />
       </View>
 
+      <SectionHeader title="Your data" />
+      <View style={styles.group}>
+        <Pressable onPress={() => router.push('/backup' as never)}><ListRow icon="shield-checkmark-outline" title="Backup & restore" detail="Download or safely restore your local data" /></Pressable>
+      </View>
+
       <SectionHeader title="About" />
       <View style={styles.group}>
         <ListRow icon="phone-portrait-outline" title="Works offline" detail="Use it anywhere" />
-        <ListRow icon="heart-outline" title="KineticForm" detail="Version 0.2.0" />
+        <ListRow icon="heart-outline" title="KineticForm" detail="Version 1.0.0" />
       </View>
     </Screen>
   );
