@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "KineticForm",
+    "slug": "kineticform",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/kineticform-icon.png",
+    "scheme": "kineticform",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.intouchktakizawa.kineticform"
+    },
+    "android": {
+      "package": "com.intouchktakizawa.kineticform",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/kineticform-icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/kineticform-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0A0C0B"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "baseUrl": "/KineticForm"
+    }
+  }
+}
