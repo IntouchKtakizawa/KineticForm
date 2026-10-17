@@ -1,6 +1,6 @@
 # KineticForm
 
-KineticForm is a mobile-first, local-only workout tracker built with React Native, Expo, TypeScript, and Expo Router.
+KineticForm is a mobile-first workout planning and tracking platform built with React Native, Expo, TypeScript, and Expo Router. Workout data stays on the device by default; optional Google Calendar sync sends only the sessions a user chooses to schedule.
 
 ## V0.2
 

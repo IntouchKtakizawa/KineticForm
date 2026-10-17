@@ -12,7 +12,7 @@ import { useWorkout } from '@/store/workout-store';
 
 export function generateMetadata(): Metadata {
   return {
-    title: 'KineticForm — Simple Workout Tracker',
+    title: 'KineticForm — Workout Planner & Tracker',
     description: 'Plan workouts, search exercises, build programs, import training plans, log sets, and track progress.',
   };
 }
