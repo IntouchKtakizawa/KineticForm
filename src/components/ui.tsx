@@ -31,9 +31,9 @@ export function SectionHeader({ title, action, onAction }: { title: string; acti
 
 export function PrimaryButton({ label, onPress, icon = 'arrow-forward', disabled = false }: { label: string; onPress: () => void; icon?: IconName; disabled?: boolean }) {
   return (
-    <Pressable onPress={onPress} disabled={disabled} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, disabled && styles.disabled]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} disabled={disabled} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, disabled && styles.disabled]}>
       <Text style={styles.primaryLabel}>{label}</Text>
-      <View style={styles.buttonIcon}><Ionicons name={icon} size={20} color={colors.ink} /></View>
+      <View style={styles.buttonIcon}><Ionicons name={icon} size={20} color={colors.white} /></View>
     </Pressable>
   );
 }
@@ -63,7 +63,7 @@ export function ListRow({ icon, title, detail, trailing }: { icon: IconName; tit
         <Text style={styles.listTitle}>{title}</Text>
         {detail ? <Text style={styles.listDetail}>{detail}</Text> : null}
       </View>
-      {trailing ?? <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />}
+      {trailing ?? null}
     </View>
   );
 }
@@ -71,22 +71,22 @@ export function ListRow({ icon, title, detail, trailing }: { icon: IconName; tit
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.ink },
   flex: { flex: 1 },
-  screenContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: 130 },
-  eyebrow: { color: colors.accent, fontSize: 11, fontWeight: '800', letterSpacing: 1.8, textTransform: 'uppercase' },
+  screenContent: { width: '100%', maxWidth: 760, alignSelf: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: 130 },
+  eyebrow: { color: colors.accent, fontSize: 13, fontWeight: '800', letterSpacing: 0.2 },
   sectionHeader: { marginTop: spacing.xl, marginBottom: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { color: colors.text, fontSize: 20, fontWeight: '700', letterSpacing: -0.4 },
+  sectionTitle: { color: colors.text, fontSize: 21, fontWeight: '800', letterSpacing: -0.4 },
   sectionAction: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
-  primaryButton: { height: 62, borderRadius: radius.md, backgroundColor: colors.accent, paddingLeft: 21, paddingRight: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  primaryLabel: { color: colors.ink, fontSize: 16, fontWeight: '800', letterSpacing: -0.2 },
-  buttonIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,12,11,0.10)' },
+  primaryButton: { height: 64, borderRadius: 19, backgroundColor: colors.accent, paddingLeft: 22, paddingRight: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  primaryLabel: { color: colors.white, fontSize: 18, fontWeight: '900', letterSpacing: -0.2 },
+  buttonIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.18)' },
   iconButton: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
   pressed: { opacity: 0.72, transform: [{ scale: 0.985 }] },
   disabled: { opacity: 0.35 },
   metricValue: { fontFamily: 'SpaceMono', color: colors.text, fontSize: 24, letterSpacing: -1.2 },
   metricSuffix: { color: colors.textMuted, fontSize: 12, letterSpacing: 0 },
   metricLabel: { color: colors.textMuted, fontSize: 11, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '700' },
-  listRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
-  listIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentDim, marginRight: 13 },
+  listRow: { minHeight: 76, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
+  listIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentDim, marginRight: 13 },
   listCopy: { flex: 1 },
   listTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
   listDetail: { color: colors.textMuted, fontSize: 12, marginTop: 3 },

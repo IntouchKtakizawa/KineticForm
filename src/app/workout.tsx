@@ -21,10 +21,7 @@ export default function WorkoutScreen() {
   useEffect(() => {
     const initialTick = setTimeout(() => setNow(Date.now()), 0);
     const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => {
-      clearTimeout(initialTick);
-      clearInterval(interval);
-    };
+    return () => { clearTimeout(initialTick); clearInterval(interval); };
   }, []);
 
   const progress = useMemo(() => {
@@ -40,38 +37,39 @@ export default function WorkoutScreen() {
   const elapsed = Math.floor((currentTime - activeWorkout.startedAt) / 1000);
   const restRemaining = activeWorkout.restEndAt ? Math.max(0, Math.round((activeWorkout.restEndAt - currentTime) / 1000)) : 0;
 
-  const requestDiscard = () => Alert.alert('Discard workout?', 'Your logged sets from this session will be removed.', [
-    { text: 'Keep training', style: 'cancel' },
-    { text: 'Discard', style: 'destructive', onPress: () => { discardWorkout(); router.replace('/'); } },
+  const requestDiscard = () => Alert.alert('Leave this workout?', 'Your ticks and numbers from this workout will be removed.', [
+    { text: 'Keep going', style: 'cancel' },
+    { text: 'Leave', style: 'destructive', onPress: () => { discardWorkout(); router.replace('/'); } },
   ]);
-
-  const finish = () => {
-    finishWorkout();
-    router.replace('/progress');
-  };
+  const finish = () => { finishWorkout(); router.replace('/progress'); };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
-          <Pressable onPress={requestDiscard} style={styles.closeButton}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Leave workout" onPress={requestDiscard} style={styles.closeButton}>
+            <Ionicons name="close" size={24} color={colors.text} />
+          </Pressable>
           <View style={styles.headerCenter}>
-            <Text style={styles.live}>● LIVE WORKOUT</Text>
+            <Text style={styles.live}>Workout time</Text>
             <Text style={styles.timer}>{formatTime(elapsed)}</Text>
           </View>
-          <Pressable disabled={progress.complete === 0} onPress={finish} style={[styles.finishButton, progress.complete === 0 && styles.disabled]}><Text style={styles.finishLabel}>Finish</Text></Pressable>
+          <Pressable disabled={progress.complete === 0} onPress={finish} style={[styles.finishButton, progress.complete === 0 && styles.disabled]}>
+            <Text style={styles.finishLabel}>Finish</Text>
+          </Pressable>
         </View>
 
-        <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progress.percent * 100}%` }]} /></View>
-
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <View style={styles.workoutHeading}>
-            <View>
-              <Text style={styles.workoutTitle}>{activeWorkout.name}</Text>
-              <Text style={styles.workoutMeta}>{progress.complete} of {progress.total} sets complete</Text>
-            </View>
+        <View style={styles.progressWrap}>
+          <View style={styles.progressCopy}>
+            <Text style={styles.progressLabel}>{progress.complete} of {progress.total} sets done</Text>
             <Text style={styles.percent}>{Math.round(progress.percent * 100)}%</Text>
           </View>
+          <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progress.percent * 100}%` }]} /></View>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <Text style={styles.workoutTitle}>{activeWorkout.name}</Text>
+          <Text style={styles.help}>Type your numbers, then tap Done.</Text>
 
           {activeWorkout.exercises.map((exercise, index) => (
             <ExerciseLogger
@@ -88,23 +86,24 @@ export default function WorkoutScreen() {
           ))}
 
           <Pressable disabled={progress.complete === 0} style={[styles.completeButton, progress.complete === 0 && styles.disabled]} onPress={finish}>
-            <View>
+            <Ionicons name="trophy" size={26} color={colors.white} />
+            <View style={styles.completeCopy}>
               <Text style={styles.completeTitle}>Finish workout</Text>
-              <Text style={styles.completeSub}>{progress.complete} sets · {formatTime(elapsed)}</Text>
+              <Text style={styles.completeSub}>Save my {progress.complete} completed sets</Text>
             </View>
-            <View style={styles.completeIcon}><Ionicons name="checkmark" size={23} color={colors.ink} /></View>
+            <Ionicons name="arrow-forward" size={22} color={colors.white} />
           </Pressable>
         </ScrollView>
 
         {restRemaining > 0 ? (
           <View style={styles.restBar}>
-            <View style={styles.restIcon}><Ionicons name="timer-outline" size={20} color={colors.accent} /></View>
+            <View style={styles.restIcon}><Ionicons name="timer" size={22} color={colors.accent} /></View>
             <View style={styles.restCopy}>
-              <Text style={styles.restLabel}>RESTING</Text>
+              <Text style={styles.restLabel}>Take a break</Text>
               <Text style={styles.restTime}>{formatTime(restRemaining)}</Text>
             </View>
-            <Pressable onPress={() => startRest(restRemaining + 30)} style={styles.restAction}><Text style={styles.restActionText}>+30</Text></Pressable>
-            <Pressable onPress={skipRest} style={styles.restAction}><Text style={styles.restActionText}>Skip</Text></Pressable>
+            <Pressable onPress={() => startRest(restRemaining + 30)} style={styles.restAction}><Text style={styles.restActionText}>+30 sec</Text></Pressable>
+            <Pressable onPress={skipRest} style={[styles.restAction, styles.skipAction]}><Text style={styles.skipText}>Skip</Text></Pressable>
           </View>
         ) : null}
       </KeyboardAvoidingView>
@@ -122,34 +121,35 @@ function ExerciseLogger({ exercise, index, onUpdate, onToggle, onAdd }: {
   return (
     <View style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
-        <View style={styles.exerciseIndex}><Text style={styles.exerciseIndexText}>{String(index + 1).padStart(2, '0')}</Text></View>
+        <View style={[styles.exerciseIndex, index % 2 === 1 && styles.exerciseIndexWarm]}><Text style={styles.exerciseIndexText}>{index + 1}</Text></View>
         <View style={styles.exerciseCopy}>
           <Text style={styles.exerciseName}>{exercise.name}</Text>
-          <Text style={styles.exerciseTarget}>{exercise.muscle} · {exercise.repTarget} reps · {Math.round(exercise.restSeconds / 60)} min rest</Text>
+          <Text style={styles.exerciseTarget}>{exercise.sets} sets × {exercise.repTarget} reps · {Math.round(exercise.restSeconds / 60)} min break</Text>
         </View>
-        <Ionicons name="ellipsis-horizontal" size={20} color={colors.textMuted} />
       </View>
 
       <View style={styles.setHeader}>
-        <Text style={[styles.setHeading, styles.setNumber]}>SET</Text>
-        <Text style={styles.setHeading}>KG</Text>
-        <Text style={styles.setHeading}>REPS</Text>
-        <View style={styles.checkSpace} />
+        <Text style={[styles.setHeading, styles.setNumber]}>Set</Text>
+        <Text style={styles.setHeading}>Weight</Text>
+        <Text style={styles.setHeading}>Reps</Text>
+        <Text style={styles.doneHeading}>Done</Text>
       </View>
 
       {exercise.logs.map((set, setIndex) => (
         <View key={set.id} style={[styles.setRow, set.completed && styles.completedRow]}>
-          <Text style={[styles.setCount, set.completed && styles.completedCopy]}>{setIndex + 1}</Text>
+          <View style={styles.setBubble}><Text style={styles.setCount}>{setIndex + 1}</Text></View>
           <TextInput
+            accessibilityLabel={`Set ${setIndex + 1} weight`}
             value={set.weight}
             onChangeText={(value) => onUpdate(set.id, 'weight', value)}
             style={[styles.input, set.completed && styles.completedInput]}
             keyboardType="decimal-pad"
             selectTextOnFocus
-            placeholder="—"
+            placeholder="0"
             placeholderTextColor={colors.textMuted}
           />
           <TextInput
+            accessibilityLabel={`Set ${setIndex + 1} repetitions`}
             value={set.reps}
             onChangeText={(value) => onUpdate(set.id, 'reps', value)}
             style={[styles.input, set.completed && styles.completedInput]}
@@ -160,15 +160,19 @@ function ExerciseLogger({ exercise, index, onUpdate, onToggle, onAdd }: {
           />
           <Pressable
             accessibilityRole="checkbox"
+            accessibilityLabel={`Set ${setIndex + 1} done`}
             accessibilityState={{ checked: set.completed }}
             onPress={() => onToggle(set.id, set.completed)}
             style={[styles.check, set.completed && styles.checked]}>
-            {set.completed ? <Ionicons name="checkmark" size={20} color={colors.ink} /> : null}
+            <Ionicons name={set.completed ? 'checkmark' : 'ellipse-outline'} size={21} color={set.completed ? colors.white : colors.textMuted} />
           </Pressable>
         </View>
       ))}
 
-      <Pressable onPress={onAdd} style={styles.addSet}><Ionicons name="add" size={17} color={colors.textMuted} /><Text style={styles.addSetLabel}> Add set</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={onAdd} style={styles.addSet}>
+        <Ionicons name="add-circle-outline" size={19} color={colors.accent} />
+        <Text style={styles.addSetLabel}>Add another set</Text>
+      </Pressable>
     </View>
   );
 }
@@ -176,51 +180,56 @@ function ExerciseLogger({ exercise, index, onUpdate, onToggle, onAdd }: {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.ink },
   flex: { flex: 1 },
-  header: { height: 64, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  closeButton: { width: 44, height: 44, justifyContent: 'center' },
+  header: { width: '100%', maxWidth: 760, alignSelf: 'center', height: 70, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  closeButton: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   headerCenter: { alignItems: 'center' },
-  live: { color: colors.accent, fontSize: 8, fontWeight: '900', letterSpacing: 1.2 },
-  timer: { color: colors.text, fontFamily: 'SpaceMono', fontSize: 15, marginTop: 4 },
-  finishButton: { minWidth: 62, height: 38, borderRadius: 12, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
-  finishLabel: { color: colors.text, fontSize: 13, fontWeight: '800' },
-  progressTrack: { height: 2, backgroundColor: colors.line },
-  progressFill: { height: 2, backgroundColor: colors.accent },
-  content: { paddingHorizontal: spacing.md, paddingTop: spacing.lg, paddingBottom: 130 },
-  workoutHeading: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 4, marginBottom: spacing.xl },
-  workoutTitle: { color: colors.text, fontSize: 27, fontWeight: '800', letterSpacing: -0.9 },
-  workoutMeta: { color: colors.textMuted, fontSize: 12, marginTop: 6 },
-  percent: { color: colors.accent, fontFamily: 'SpaceMono', fontSize: 18 },
+  live: { color: colors.textMuted, fontSize: 11, fontWeight: '800' },
+  timer: { color: colors.text, fontFamily: 'SpaceMono', fontSize: 18, marginTop: 2 },
+  finishButton: { minWidth: 70, height: 42, borderRadius: 14, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  finishLabel: { color: colors.white, fontSize: 13, fontWeight: '900' },
+  progressWrap: { width: '100%', maxWidth: 760, alignSelf: 'center', paddingHorizontal: spacing.lg, paddingVertical: 12 },
+  progressCopy: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  progressLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  percent: { color: colors.accent, fontSize: 12, fontWeight: '900' },
+  progressTrack: { height: 9, borderRadius: radius.pill, backgroundColor: colors.accentDim, overflow: 'hidden' },
+  progressFill: { height: 9, borderRadius: radius.pill, backgroundColor: colors.accent },
+  content: { width: '100%', maxWidth: 760, alignSelf: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: 140 },
+  workoutTitle: { color: colors.text, fontSize: 29, fontWeight: '900', letterSpacing: -1 },
+  help: { color: colors.textMuted, fontSize: 14, marginTop: 4, marginBottom: spacing.lg },
   exerciseCard: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, padding: spacing.md, marginBottom: spacing.md },
-  exerciseHeader: { minHeight: 56, flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  exerciseIndex: { width: 36, height: 36, borderRadius: 11, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  exerciseIndexText: { color: colors.accent, fontFamily: 'SpaceMono', fontSize: 10 },
+  exerciseHeader: { minHeight: 58, flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  exerciseIndex: { width: 46, height: 46, borderRadius: 16, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  exerciseIndexWarm: { backgroundColor: colors.warmDim },
+  exerciseIndexText: { color: colors.text, fontSize: 17, fontWeight: '900' },
   exerciseCopy: { flex: 1 },
-  exerciseName: { color: colors.text, fontSize: 16, fontWeight: '800', letterSpacing: -0.2 },
-  exerciseTarget: { color: colors.textMuted, fontSize: 10, marginTop: 5 },
-  setHeader: { height: 30, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 3 },
-  setHeading: { flex: 1, color: colors.textMuted, textAlign: 'center', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
-  setNumber: { flex: 0, width: 34, textAlign: 'left' },
-  checkSpace: { width: 45 },
-  setRow: { height: 55, flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.line, gap: 9 },
-  completedRow: { opacity: 0.82 },
-  setCount: { width: 25, color: colors.textMuted, textAlign: 'center', fontFamily: 'SpaceMono', fontSize: 12 },
-  completedCopy: { color: colors.accent },
-  input: { flex: 1, minWidth: 0, height: 38, paddingHorizontal: 7, textAlign: 'center', borderRadius: 9, color: colors.text, backgroundColor: colors.ink, fontFamily: 'SpaceMono', fontSize: 14, borderWidth: 1, borderColor: colors.line },
-  completedInput: { borderColor: colors.accentDim, color: colors.text },
-  check: { width: 42, height: 38, borderRadius: 11, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  checked: { backgroundColor: colors.accent, borderColor: colors.accent },
-  addSet: { height: 39, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 5 },
-  addSetLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  completeButton: { minHeight: 74, backgroundColor: colors.accent, borderRadius: radius.md, paddingLeft: 21, paddingRight: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm },
-  completeTitle: { color: colors.ink, fontSize: 16, fontWeight: '900' },
-  completeSub: { color: '#576529', fontSize: 10, marginTop: 4, fontFamily: 'SpaceMono' },
-  completeIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: 'rgba(10,12,11,.1)', alignItems: 'center', justifyContent: 'center' },
-  restBar: { position: 'absolute', left: 12, right: 12, bottom: 9, minHeight: 72, borderRadius: radius.md, padding: 11, backgroundColor: '#20251D', borderWidth: 1, borderColor: '#3D4829', flexDirection: 'row', alignItems: 'center' },
-  restIcon: { width: 43, height: 43, borderRadius: 13, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center' },
-  restCopy: { flex: 1, marginLeft: 12 },
-  restLabel: { color: colors.textMuted, fontSize: 8, fontWeight: '900', letterSpacing: 1.1 },
-  restTime: { color: colors.text, fontFamily: 'SpaceMono', fontSize: 17, marginTop: 3 },
-  restAction: { height: 40, minWidth: 48, borderRadius: 11, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', marginLeft: 7 },
-  restActionText: { color: colors.text, fontSize: 11, fontWeight: '800' },
+  exerciseName: { color: colors.text, fontSize: 17, fontWeight: '900', letterSpacing: -0.2 },
+  exerciseTarget: { color: colors.textMuted, fontSize: 11, marginTop: 5 },
+  setHeader: { height: 32, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  setHeading: { flex: 1, color: colors.textMuted, textAlign: 'center', fontSize: 10, fontWeight: '800' },
+  setNumber: { flex: 0, width: 38 },
+  doneHeading: { width: 50, color: colors.textMuted, textAlign: 'center', fontSize: 10, fontWeight: '800' },
+  setRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: colors.line },
+  completedRow: { backgroundColor: colors.successDim, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 13, borderTopColor: 'transparent' },
+  setBubble: { width: 38, alignItems: 'center' },
+  setCount: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  input: { flex: 1, minWidth: 0, height: 42, paddingHorizontal: 7, textAlign: 'center', borderRadius: 12, color: colors.text, backgroundColor: colors.ink, fontFamily: 'SpaceMono', fontSize: 15, borderWidth: 1, borderColor: colors.line },
+  completedInput: { borderColor: colors.success, backgroundColor: colors.surface },
+  check: { width: 50, height: 42, borderRadius: 13, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
+  checked: { backgroundColor: colors.success, borderColor: colors.success },
+  addSet: { height: 46, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  addSetLabel: { color: colors.accent, fontSize: 13, fontWeight: '800' },
+  completeButton: { minHeight: 74, backgroundColor: colors.accent, borderRadius: radius.md, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm },
+  completeCopy: { flex: 1, marginLeft: 12 },
+  completeTitle: { color: colors.white, fontSize: 17, fontWeight: '900' },
+  completeSub: { color: '#E8E1FF', fontSize: 11, marginTop: 3 },
+  restBar: { position: 'absolute', alignSelf: 'center', width: '94%', maxWidth: 720, bottom: 9, minHeight: 78, borderRadius: 20, padding: 11, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.accentSoft, flexDirection: 'row', alignItems: 'center', shadowColor: '#392776', shadowOpacity: 0.18, shadowRadius: 20 },
+  restIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center' },
+  restCopy: { flex: 1, marginLeft: 11 },
+  restLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '800' },
+  restTime: { color: colors.text, fontFamily: 'SpaceMono', fontSize: 19, marginTop: 2 },
+  restAction: { height: 42, paddingHorizontal: 11, borderRadius: 13, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center', marginLeft: 6 },
+  restActionText: { color: colors.accent, fontSize: 11, fontWeight: '900' },
+  skipAction: { backgroundColor: colors.accent },
+  skipText: { color: colors.white, fontSize: 11, fontWeight: '900' },
   disabled: { opacity: 0.35 },
 });

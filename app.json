@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/kineticform-icon.png",
     "scheme": "kineticform",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.intouchktakizawa.kineticform"
@@ -27,7 +27,7 @@
         {
           "image": "./assets/images/kineticform-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0A0C0B"
+          "backgroundColor": "#F7F5FF"
         }
       ]
     ],

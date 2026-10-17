@@ -21,7 +21,7 @@ export default function RootLayout() {
 
   return (
     <WorkoutProvider>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ink }, animation: 'fade_from_bottom' }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="workout" options={{ gestureEnabled: false, animation: 'slide_from_bottom' }} />
