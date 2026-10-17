@@ -38,7 +38,7 @@ export default function WorkoutScreen() {
 
   const currentTime = now || activeWorkout.startedAt;
   const elapsed = Math.floor((currentTime - activeWorkout.startedAt) / 1000);
-  const restRemaining = activeWorkout.restEndAt ? Math.max(0, Math.ceil((activeWorkout.restEndAt - currentTime) / 1000)) : 0;
+  const restRemaining = activeWorkout.restEndAt ? Math.max(0, Math.round((activeWorkout.restEndAt - currentTime) / 1000)) : 0;
 
   const requestDiscard = () => Alert.alert('Discard workout?', 'Your logged sets from this session will be removed.', [
     { text: 'Keep training', style: 'cancel' },
