@@ -19,6 +19,7 @@ export type Exercise = {
   equipment?: string;
   type?: string;
   movement?: string;
+  purpose?: string;
   notes?: string;
   durationMinutes?: number;
   distanceKm?: number;

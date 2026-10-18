@@ -13,6 +13,7 @@ export default function ProgramsScreen() {
   const { plans, programs, history, schedule, startWorkout, duplicatePlan, removePlan, saveProgram, importTemplate } = useWorkout();
   const [showTemplate, setShowTemplate] = useState(false);
   const [referenceNow] = useState(() => Date.now());
+  const flexPlan = kentaWorkoutTemplate.plans.find((plan) => plan.id === 'kenta-flex');
   const scheduledPlans = (days: number) => {
     const end = referenceNow + days * 86400000;
     const ids = schedule.filter((item) => new Date(item.startISO).getTime() <= end).map((item) => item.planId);
@@ -37,13 +38,13 @@ export default function ProgramsScreen() {
       <View style={styles.templateCard}>
         <View style={styles.templateTop}><View style={styles.templateIcon}><Ionicons name="sparkles" size={22} color={colors.accent} /></View><View style={styles.templateCopy}><Text style={styles.templateName}>{kentaWorkoutTemplate.name}</Text><Text style={styles.templateMeta}>3 main workouts · 1 optional Flex day · dumbbells</Text></View></View>
         <Text style={styles.templateDescription}>{kentaWorkoutTemplate.description}</Text>
-        <View style={styles.templateStats}><View style={styles.templateStat}><Text style={styles.templateStatValue}>3</Text><Text style={styles.templateStatLabel}>weekly goal</Text></View><View style={styles.templateStat}><Text style={styles.templateStatValue}>4</Text><Text style={styles.templateStatLabel}>workouts</Text></View><View style={styles.templateStat}><Text style={styles.templateStatValue}>20–60</Text><Text style={styles.templateStatLabel}>minutes</Text></View></View>
+        <View style={styles.templateStats}><View style={styles.templateStat}><Text style={styles.templateStatValue}>3</Text><Text style={styles.templateStatLabel}>weekly goal</Text></View><View style={styles.templateStat}><Text style={styles.templateStatValue}>4</Text><Text style={styles.templateStatLabel}>workouts</Text></View><View style={styles.templateStat}><Text style={styles.templateStatValue}>25–60</Text><Text style={styles.templateStatLabel}>minutes</Text></View></View>
         <View style={styles.templateActions}><Pressable accessibilityRole="button" accessibilityState={{ expanded: showTemplate }} onPress={() => setShowTemplate((value) => !value)} style={styles.previewButton}><Text style={styles.previewButtonText}>{showTemplate ? 'Hide details' : 'Preview plan'}</Text><Ionicons name={showTemplate ? 'chevron-up' : 'chevron-down'} size={17} color={colors.text} /></Pressable><Pressable accessibilityRole="button" onPress={() => { importTemplate(kentaWorkoutTemplate); Alert.alert('Template imported', 'Full Body A, B, C and Optional Flex are saved, with the weekly schedule ready in Plan.'); }} style={styles.importButton}><Ionicons name="download-outline" size={17} color={colors.white} /><Text style={styles.importButtonText}>{programs.some((item) => item.id === kentaWorkoutTemplate.id) ? 'Update import' : 'Import template'}</Text></Pressable></View>
         {showTemplate ? <View style={styles.templateDetails}>
           <Text style={styles.detailHeading}>Weekly schedule</Text>
-          {kentaWorkoutTemplate.schedule.map((item) => <View key={item.day} style={styles.scheduleRow}><Text style={styles.scheduleDay}>{['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][item.day]}</Text><Text style={[styles.scheduleWorkout, item.optional && styles.optionalText]}>{item.label}{item.optional ? ' · optional' : ''}</Text><Text style={styles.scheduleDuration}>{item.duration}</Text></View>)}
+          {kentaWorkoutTemplate.schedule.map((item) => <View key={item.day}><View style={styles.scheduleRow}><Text style={styles.scheduleDay}>{['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][item.day]}</Text><Text style={[styles.scheduleWorkout, item.optional && styles.optionalText]}>{item.label}{item.optional ? ' · optional' : ''}</Text><Text style={styles.scheduleDuration}>{item.duration}</Text></View>{item.optional && flexPlan ? <View style={styles.optionalRoutine}>{flexPlan.exercises.map((exercise) => <View key={`${item.day}-${exercise.id}`} style={styles.optionalExercise}><Text style={styles.optionalExerciseName}>{exercise.name}</Text><Text style={styles.optionalExerciseAmount}>{exercise.type === 'Cardio' || exercise.type === 'Duration' ? exercise.repTarget : `${exercise.setTarget ?? exercise.sets} × ${exercise.repTarget}`}</Text><Text style={styles.optionalExercisePurpose}>{exercise.purpose}</Text></View>)}</View> : null}</View>)}
           <Text style={styles.flexRule}>Choose Tuesday OR Thursday for Flex. Skipping either optional entry never counts as a missed workout.</Text>
-          {kentaWorkoutTemplate.plans.map((plan) => <View key={plan.id} style={styles.templateWorkout}><Text style={styles.templateWorkoutName}>{plan.name}</Text><Text style={styles.templateWorkoutMeta}>{plan.durationMinutes} min · {plan.exercises.length} exercises</Text>{plan.exercises.map((exercise) => <View key={exercise.id} style={styles.templateExercise}><Text style={styles.templateExerciseName}>{exercise.name}</Text><Text style={styles.templateExerciseTarget}>{exercise.setTarget ?? exercise.sets} × {exercise.repTarget}</Text></View>)}</View>)}
+          {kentaWorkoutTemplate.plans.map((plan) => <View key={plan.id} style={styles.templateWorkout}><Text style={styles.templateWorkoutName}>{plan.name}</Text><Text style={styles.templateWorkoutMeta}>{plan.durationMinutes} min · {plan.exercises.length} exercises</Text>{plan.exercises.map((exercise) => <View key={exercise.id} style={styles.templateExercise}><Text style={styles.templateExerciseName}>{exercise.name}</Text><Text style={styles.templateExerciseTarget}>{exercise.type === 'Cardio' || exercise.type === 'Duration' ? exercise.repTarget : `${exercise.setTarget ?? exercise.sets} × ${exercise.repTarget}`}</Text></View>)}</View>)}
           <Text style={styles.detailHeading}>Progress safely</Text>{kentaWorkoutTemplate.progression.map((item) => <Text key={item} style={styles.guidance}>• {item}</Text>)}
           <Text style={styles.detailHeading}>Rest guidance</Text>{kentaWorkoutTemplate.restGuidance.map((item) => <Text key={item} style={styles.guidance}>• {item}</Text>)}
         </View> : null}
@@ -142,6 +143,11 @@ const styles = StyleSheet.create({
   scheduleWorkout: { flex: 1, color: colors.text, fontSize: 11, fontWeight: '800' },
   optionalText: { color: '#C87500' },
   scheduleDuration: { color: colors.textMuted, fontSize: 10 },
+  optionalRoutine: { backgroundColor: colors.warmDim, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 7, marginBottom: 8 },
+  optionalExercise: { minHeight: 27, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  optionalExerciseName: { flex: 1, color: colors.text, fontSize: 9, fontWeight: '700' },
+  optionalExerciseAmount: { width: 76, color: colors.text, fontSize: 9, textAlign: 'right' },
+  optionalExercisePurpose: { width: 52, color: colors.textMuted, fontSize: 8, textAlign: 'right' },
   flexRule: { color: colors.textMuted, fontSize: 10, lineHeight: 15, backgroundColor: colors.warmDim, borderRadius: 12, padding: 10, marginTop: 9 },
   templateWorkout: { backgroundColor: colors.ink, borderRadius: 14, padding: 12, marginTop: 9 },
   templateWorkoutName: { color: colors.text, fontSize: 13, fontWeight: '900' },

@@ -98,8 +98,15 @@ export function WorkoutProvider({ children }: PropsWithChildren) {
     const nextOccurrence = (weekday: number) => { const now = new Date(); const date = new Date(now); let days = (weekday - date.getDay() + 7) % 7; date.setDate(date.getDate() + days); date.setHours(weekday === 0 ? 10 : 17, 0, 0, 0); if (days === 0 && date.getTime() <= now.getTime()) { days = 7; date.setDate(date.getDate() + days); } return date.toISOString(); };
     const plans = mergeById(current.plans, template.plans.map((plan) => ({ ...plan, createdAt: importedAt })));
     const scheduleItems: ScheduledWorkout[] = template.schedule.filter((item) => item.planId).map((item) => ({ id: `${template.id}-day-${item.day}`, planId: item.planId!, title: item.label, startISO: nextOccurrence(item.day), durationMinutes: Number(item.duration.match(/\d+/)?.[0]) || 30, recurrence: 'weekly', weekdays: [item.day], status: 'upcoming', optional: item.optional }));
+    const schedule = [
+      ...current.schedule.map((item) => {
+        const update = scheduleItems.find((candidate) => candidate.id === item.id);
+        return update ? { ...item, planId: update.planId, title: update.title, durationMinutes: update.durationMinutes, recurrence: update.recurrence, weekdays: update.weekdays, optional: update.optional } : item;
+      }),
+      ...scheduleItems.filter((item) => !current.schedule.some((existing) => existing.id === item.id)),
+    ];
     const program: Program = { id: template.id, name: template.name, description: template.description, workoutIds: template.plans.map((plan) => plan.id), trainingDays: [3, 5, 0], weeklyGoal: template.weeklyGoal, notes: [...template.progression, ...template.restGuidance], createdAt: importedAt };
-    return { ...current, plans, schedule: mergeById(scheduleItems, current.schedule), programs: mergeById(current.programs, [program]) };
+    return { ...current, plans, schedule, programs: mergeById(current.programs, [program]) };
   }), []);
   const createBackup = useCallback((): KineticFormBackup => ({ app: 'KineticForm', schemaVersion: 4, exportedAt: new Date().toISOString(), data: state }), [state]);
   const restoreBackup = useCallback((raw: KineticFormBackup, mode: RestoreMode) => { const backup = validateBackup(raw); setState((current) => mode === 'replace' ? migrate(backup.data) : ({ ...current, displayName: backup.data.displayName || current.displayName, profile: { ...current.profile, ...(backup.data.profile ?? {}) }, plans: mergeById(current.plans, backup.data.plans), history: mergeById(current.history, backup.data.history), customExercises: mergeById(current.customExercises, backup.data.customExercises), schedule: mergeById(current.schedule, backup.data.schedule), programs: mergeById(current.programs, backup.data.programs), preferences: { ...current.preferences, ...backup.data.preferences } })); }, []);
