@@ -67,6 +67,7 @@ export default function ScheduleScreen() {
       recurrence: repeat ? 'weekly' : 'none',
       weekdays: repeat ? weekdays : undefined,
       status: previous?.status ?? 'upcoming',
+      optional: previous?.optional,
       googleEventId: previous?.googleEventId,
       googleEventUrl: previous?.googleEventUrl,
     };
@@ -155,7 +156,7 @@ export default function ScheduleScreen() {
         {sorted.map((item) => {
           const plan = plans.find((entry) => entry.id === item.planId);
           const start = new Date(item.startISO);
-          const isMissed = item.status === 'upcoming' && start.getTime() < referenceNow;
+          const isMissed = !item.optional && item.status === 'upcoming' && start.getTime() < referenceNow;
           const status = isMissed ? 'missed' : item.status;
           return (
             <View key={item.id} style={styles.eventCard}>
@@ -164,7 +165,7 @@ export default function ScheduleScreen() {
                 <View style={styles.eventCopy}>
                   <Text numberOfLines={2} style={styles.eventTitle}>{item.title}</Text>
                   <Text style={styles.eventTime}>{start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}–{new Date(start.getTime() + item.durationMinutes * 60000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</Text>
-                  <View style={styles.statusRow}><View style={[styles.statusDot, status === 'completed' && styles.completedDot, status === 'missed' && styles.missedDot]} /><Text style={styles.statusText}>{status}{item.recurrence === 'weekly' ? ' · repeats weekly' : ''}</Text></View>
+                  <View style={styles.statusRow}><View style={[styles.statusDot, status === 'completed' && styles.completedDot, status === 'missed' && styles.missedDot, item.optional && styles.optionalDot]} /><Text style={styles.statusText}>{item.optional && status !== 'completed' ? 'optional · no streak penalty' : status}{item.recurrence === 'weekly' ? ' · repeats weekly' : ''}</Text></View>
                 </View>
                 <View style={styles.eventActions}>
                   {status === 'upcoming' ? <Pressable accessibilityRole="button" accessibilityLabel={`Start ${item.title}`} onPress={() => { if (plan) { startWorkout(plan.id, item.id); router.push('/workout'); } }} style={styles.playButton}><Ionicons name="play" size={18} color={colors.white} /></Pressable> : null}
@@ -236,6 +237,7 @@ const styles = StyleSheet.create({
   statusDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent, marginRight: 5 },
   completedDot: { backgroundColor: colors.success },
   missedDot: { backgroundColor: colors.danger },
+  optionalDot: { backgroundColor: colors.warm },
   statusText: { color: colors.textMuted, fontSize: 10, textTransform: 'capitalize' },
   eventActions: { flexDirection: 'row', gap: 7, marginTop: 11 },
   playButton: { width: 38, height: 38, borderRadius: 13, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },

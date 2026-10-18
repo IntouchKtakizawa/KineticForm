@@ -4,7 +4,7 @@ KineticForm is a mobile-first workout planning and tracking platform built with 
 
 Calendar integration is app-managed rather than two-way synchronization: KineticForm creates and updates events linked to local sessions, but edits made directly in Google Calendar do not automatically return to KineticForm.
 
-## V1.0
+## Current features
 
 - Today view with a clear planned workout and resumable active session
 - Set, rep, and weight logging with haptic completion feedback
@@ -24,6 +24,7 @@ Calendar integration is app-managed rather than two-way synchronization: Kinetic
 - Program grouping, optional onboarding preferences, raw history CSV, richer progress metrics, and expanded exercise aliases
 - Safer imports with file limits, scanned-PDF detection, original-line review, and visible unmatched entries
 - Editable local profile with name, emoji avatar, body details, activity level, and personal goals
+- Built-in “Kenta's goated workout template” with three required full-body days, an optional no-penalty Flex day, safe progression guidance, first-session load selection, RPE logging, notes, previous performance, and personal-best tracking
 
 ## Google Calendar setup
 

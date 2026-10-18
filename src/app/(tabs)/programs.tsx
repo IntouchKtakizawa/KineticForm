@@ -5,11 +5,13 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/constants/theme';
+import { kentaWorkoutTemplate } from '@/data/templates';
 import { useWorkout } from '@/store/workout-store';
 import { downloadHistoryCsv, exportWorkoutPdf } from '@/utils/export-workout';
 
 export default function ProgramsScreen() {
-  const { plans, programs, history, schedule, startWorkout, duplicatePlan, removePlan, saveProgram } = useWorkout();
+  const { plans, programs, history, schedule, startWorkout, duplicatePlan, removePlan, saveProgram, importTemplate } = useWorkout();
+  const [showTemplate, setShowTemplate] = useState(false);
   const [referenceNow] = useState(() => Date.now());
   const scheduledPlans = (days: number) => {
     const end = referenceNow + days * 86400000;
@@ -31,15 +33,31 @@ export default function ProgramsScreen() {
       <View style={styles.planExports}><Pressable accessibilityRole="button" onPress={() => exportWorkoutPdf('Weekly Training Plan', scheduledPlans(7))} style={styles.planExportButton}><Ionicons name="calendar-outline" size={18} color={colors.accent} /><Text style={styles.planExportText}>Weekly PDF</Text></Pressable><Pressable accessibilityRole="button" onPress={() => exportWorkoutPdf('Monthly Training Plan', scheduledPlans(30))} style={styles.planExportButton}><Ionicons name="calendar-number-outline" size={18} color={colors.accent} /><Text style={styles.planExportText}>Monthly PDF</Text></Pressable></View>
       <Pressable accessibilityRole="button" onPress={() => { try { downloadHistoryCsv(history); } catch (error) { Alert.alert('CSV export', error instanceof Error ? error.message : 'Export failed.'); } }} style={[styles.planExportButton, { marginTop: 9 }]}><Ionicons name="grid-outline" size={18} color={colors.accent} /><Text style={styles.planExportText}>Download raw history CSV</Text></Pressable>
 
+      <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Built-in templates</Text><Text style={styles.count}>Ready to import</Text></View>
+      <View style={styles.templateCard}>
+        <View style={styles.templateTop}><View style={styles.templateIcon}><Ionicons name="sparkles" size={22} color={colors.accent} /></View><View style={styles.templateCopy}><Text style={styles.templateName}>{kentaWorkoutTemplate.name}</Text><Text style={styles.templateMeta}>3 main workouts · 1 optional Flex day · dumbbells</Text></View></View>
+        <Text style={styles.templateDescription}>{kentaWorkoutTemplate.description}</Text>
+        <View style={styles.templateStats}><View style={styles.templateStat}><Text style={styles.templateStatValue}>3</Text><Text style={styles.templateStatLabel}>weekly goal</Text></View><View style={styles.templateStat}><Text style={styles.templateStatValue}>4</Text><Text style={styles.templateStatLabel}>workouts</Text></View><View style={styles.templateStat}><Text style={styles.templateStatValue}>20–60</Text><Text style={styles.templateStatLabel}>minutes</Text></View></View>
+        <View style={styles.templateActions}><Pressable accessibilityRole="button" accessibilityState={{ expanded: showTemplate }} onPress={() => setShowTemplate((value) => !value)} style={styles.previewButton}><Text style={styles.previewButtonText}>{showTemplate ? 'Hide details' : 'Preview plan'}</Text><Ionicons name={showTemplate ? 'chevron-up' : 'chevron-down'} size={17} color={colors.text} /></Pressable><Pressable accessibilityRole="button" onPress={() => { importTemplate(kentaWorkoutTemplate); Alert.alert('Template imported', 'Full Body A, B, C and Optional Flex are saved, with the weekly schedule ready in Plan.'); }} style={styles.importButton}><Ionicons name="download-outline" size={17} color={colors.white} /><Text style={styles.importButtonText}>{programs.some((item) => item.id === kentaWorkoutTemplate.id) ? 'Update import' : 'Import template'}</Text></Pressable></View>
+        {showTemplate ? <View style={styles.templateDetails}>
+          <Text style={styles.detailHeading}>Weekly schedule</Text>
+          {kentaWorkoutTemplate.schedule.map((item) => <View key={item.day} style={styles.scheduleRow}><Text style={styles.scheduleDay}>{['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][item.day]}</Text><Text style={[styles.scheduleWorkout, item.optional && styles.optionalText]}>{item.label}{item.optional ? ' · optional' : ''}</Text><Text style={styles.scheduleDuration}>{item.duration}</Text></View>)}
+          <Text style={styles.flexRule}>Choose Tuesday OR Thursday for Flex. Skipping either optional entry never counts as a missed workout.</Text>
+          {kentaWorkoutTemplate.plans.map((plan) => <View key={plan.id} style={styles.templateWorkout}><Text style={styles.templateWorkoutName}>{plan.name}</Text><Text style={styles.templateWorkoutMeta}>{plan.durationMinutes} min · {plan.exercises.length} exercises</Text>{plan.exercises.map((exercise) => <View key={exercise.id} style={styles.templateExercise}><Text style={styles.templateExerciseName}>{exercise.name}</Text><Text style={styles.templateExerciseTarget}>{exercise.setTarget ?? exercise.sets} × {exercise.repTarget}</Text></View>)}</View>)}
+          <Text style={styles.detailHeading}>Progress safely</Text>{kentaWorkoutTemplate.progression.map((item) => <Text key={item} style={styles.guidance}>• {item}</Text>)}
+          <Text style={styles.detailHeading}>Rest guidance</Text>{kentaWorkoutTemplate.restGuidance.map((item) => <Text key={item} style={styles.guidance}>• {item}</Text>)}
+        </View> : null}
+      </View>
+
       <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Programs</Text><Pressable accessibilityRole="button" onPress={() => saveProgram({ id: `program-${Date.now()}`, name: `My ${plans.length}-workout program`, description: 'A flexible collection of reusable workouts. Schedule individual sessions when ready.', workoutIds: plans.map((plan) => plan.id), createdAt: Date.now() })}><Text style={styles.createProgram}>Create from workouts</Text></Pressable></View>
-      {programs.length ? <View style={styles.programList}>{programs.map((program) => <View key={program.id} style={styles.programCard}><Text style={styles.programName}>{program.name}</Text><Text style={styles.toolText}>{program.workoutIds.length} workouts · flexible schedule</Text><Text style={styles.programDescription}>{program.description}</Text></View>)}</View> : <View style={styles.programEmpty}><Text style={styles.toolText}>Group templates into a reusable program without changing completed history.</Text></View>}
+      {programs.length ? <View style={styles.programList}>{programs.map((program) => <View key={program.id} style={styles.programCard}><Text style={styles.programName}>{program.name}</Text><Text style={styles.toolText}>{program.workoutIds.length} workouts{program.weeklyGoal ? ` · ${program.weeklyGoal} required per week` : ' · flexible schedule'}</Text><Text style={styles.programDescription}>{program.description}</Text></View>)}</View> : <View style={styles.programEmpty}><Text style={styles.toolText}>Group templates into a reusable program without changing completed history.</Text></View>}
 
       <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Saved workouts</Text><Text style={styles.count}>{plans.length} templates</Text></View>
       <View style={styles.list}>
         {plans.map((plan, planIndex) => (
           <View key={plan.id} style={styles.planCard}>
             <View style={styles.planTop}><View style={[styles.planBadge, planIndex % 2 === 1 && styles.planBadgeWarm]}><Ionicons name="barbell" size={22} color={colors.text} /></View><View style={styles.planCopy}><Text style={styles.planName}>{plan.name}</Text><Text style={styles.planMeta}>{plan.exercises.length} exercises · {plan.durationMinutes} min · {plan.focus}</Text></View></View>
-            <View style={styles.preview}>{plan.exercises.slice(0, 4).map((exercise, index) => <View key={`${exercise.id}-${index}`} style={styles.previewRow}><Text style={styles.previewIndex}>{index + 1}</Text><Text style={styles.previewName}>{exercise.name}</Text><Text style={styles.previewSets}>{exercise.sets} × {exercise.repTarget}</Text></View>)}{plan.exercises.length > 4 ? <Text style={styles.more}>+ {plan.exercises.length - 4} more exercises</Text> : null}</View>
+            <View style={styles.preview}>{plan.exercises.slice(0, 4).map((exercise, index) => <View key={`${exercise.id}-${index}`} style={styles.previewRow}><Text style={styles.previewIndex}>{index + 1}</Text><Text style={styles.previewName}>{exercise.name}</Text><Text style={styles.previewSets}>{exercise.setTarget ?? exercise.sets} × {exercise.repTarget}</Text></View>)}{plan.exercises.length > 4 ? <Text style={styles.more}>+ {plan.exercises.length - 4} more exercises</Text> : null}</View>
             <View style={styles.actions}>
               <Pressable accessibilityRole="button" onPress={() => { startWorkout(plan.id); router.push('/workout'); }} style={styles.startButton}><Ionicons name="play" size={17} color={colors.white} /><Text style={styles.startText}>Start</Text></Pressable>
               <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/builder', params: { id: plan.id } } as never)} style={styles.actionButton}><Ionicons name="create-outline" size={18} color={colors.text} /><Text style={styles.actionText}>Edit</Text></Pressable>
@@ -101,4 +119,35 @@ const styles = StyleSheet.create({
   programName: { color: colors.text, fontSize: 15, fontWeight: '900' },
   programDescription: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 8 },
   programEmpty: { padding: 15, borderRadius: radius.md, backgroundColor: colors.surface },
+  templateCard: { borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.accentSoft, padding: 16 },
+  templateTop: { flexDirection: 'row', alignItems: 'center' },
+  templateIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  templateCopy: { flex: 1 },
+  templateName: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  templateMeta: { color: colors.textMuted, fontSize: 10, marginTop: 4 },
+  templateDescription: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginTop: 13 },
+  templateStats: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  templateStat: { flex: 1, backgroundColor: colors.ink, borderRadius: 13, padding: 10 },
+  templateStatValue: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  templateStatLabel: { color: colors.textMuted, fontSize: 9, marginTop: 2 },
+  templateActions: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  previewButton: { flex: 1, height: 46, borderRadius: 14, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  previewButtonText: { color: colors.text, fontSize: 12, fontWeight: '900' },
+  importButton: { flex: 1.25, height: 46, borderRadius: 14, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  importButtonText: { color: colors.white, fontSize: 12, fontWeight: '900' },
+  templateDetails: { borderTopWidth: 1, borderColor: colors.line, marginTop: 16, paddingTop: 14 },
+  detailHeading: { color: colors.text, fontSize: 14, fontWeight: '900', marginTop: 11, marginBottom: 7 },
+  scheduleRow: { minHeight: 34, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.line },
+  scheduleDay: { width: 82, color: colors.textMuted, fontSize: 10, fontWeight: '800' },
+  scheduleWorkout: { flex: 1, color: colors.text, fontSize: 11, fontWeight: '800' },
+  optionalText: { color: '#C87500' },
+  scheduleDuration: { color: colors.textMuted, fontSize: 10 },
+  flexRule: { color: colors.textMuted, fontSize: 10, lineHeight: 15, backgroundColor: colors.warmDim, borderRadius: 12, padding: 10, marginTop: 9 },
+  templateWorkout: { backgroundColor: colors.ink, borderRadius: 14, padding: 12, marginTop: 9 },
+  templateWorkoutName: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  templateWorkoutMeta: { color: colors.textMuted, fontSize: 9, marginTop: 3, marginBottom: 6 },
+  templateExercise: { minHeight: 28, flexDirection: 'row', alignItems: 'center' },
+  templateExerciseName: { flex: 1, color: colors.text, fontSize: 10 },
+  templateExerciseTarget: { color: colors.textMuted, fontSize: 10 },
+  guidance: { color: colors.textMuted, fontSize: 11, lineHeight: 17, marginBottom: 5 },
 });

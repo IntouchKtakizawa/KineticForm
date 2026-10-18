@@ -2,6 +2,7 @@ export type SetLog = {
   id: string;
   reps: string;
   weight: string;
+  rpe?: string;
   completed: boolean;
   kind?: 'warmup' | 'working';
 };
@@ -11,6 +12,7 @@ export type Exercise = {
   name: string;
   muscle: string;
   sets: number;
+  setTarget?: string;
   repTarget: string;
   restSeconds: number;
   suggestedWeight: number;
@@ -49,7 +51,20 @@ export type Program = {
   description: string;
   workoutIds: string[];
   trainingDays?: number[];
+  weeklyGoal?: number;
+  notes?: string[];
   createdAt: number;
+};
+
+export type WorkoutTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  weeklyGoal: number;
+  plans: WorkoutPlan[];
+  schedule: { day: number; label: string; planId?: string; duration: string; optional?: boolean; rest?: boolean }[];
+  progression: string[];
+  restGuidance: string[];
 };
 
 export type WorkoutPlan = {
@@ -73,6 +88,7 @@ export type ScheduledWorkout = {
   recurrence: 'none' | 'weekly';
   weekdays?: number[];
   status: ScheduleStatus;
+  optional?: boolean;
   googleEventId?: string;
   googleEventUrl?: string;
 };
@@ -87,6 +103,7 @@ export type ActiveWorkout = {
   restEndAt: number | null;
   pausedRestSeconds?: number | null;
   scheduledWorkoutId?: string;
+  notes?: string;
   exercises: ActiveExercise[];
 };
 
@@ -98,6 +115,7 @@ export type WorkoutSession = {
   durationSeconds: number;
   totalVolume: number;
   completedSets: number;
+  notes?: string;
   exercises: ActiveExercise[];
 };
 
@@ -112,7 +130,7 @@ export type UserProfile = {
 };
 
 export type WorkoutState = {
-  schemaVersion: 3;
+  schemaVersion: 4;
   activeWorkout: ActiveWorkout | null;
   history: WorkoutSession[];
   displayName: string;
@@ -134,7 +152,7 @@ export type WorkoutState = {
 
 export type KineticFormBackup = {
   app: 'KineticForm';
-  schemaVersion: 3;
+  schemaVersion: 3 | 4;
   exportedAt: string;
   data: WorkoutState;
 };

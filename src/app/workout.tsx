@@ -15,7 +15,7 @@ function formatTime(totalSeconds: number) {
 }
 
 export default function WorkoutScreen() {
-  const { hydrated, activeWorkout, history, updateSet, toggleSet, setSetKind, addSet, removeSet, skipExercise, substituteExercise, startRest, pauseRest, skipRest, resetRest, finishWorkout, discardWorkout } = useWorkout();
+  const { hydrated, activeWorkout, history, updateSet, updateWorkoutNotes, toggleSet, setSetKind, addSet, removeSet, skipExercise, substituteExercise, startRest, pauseRest, skipRest, resetRest, finishWorkout, discardWorkout } = useWorkout();
   const [now, setNow] = useState(0);
   const [enteredWithWorkout] = useState(activeWorkout !== null);
 
@@ -78,7 +78,7 @@ export default function WorkoutScreen() {
               key={exercise.id}
               exercise={exercise}
               index={index}
-              previous={history.find((session) => session.exercises.some((item) => item.name === exercise.name))?.exercises.find((item) => item.name === exercise.name)?.logs.filter((set) => set.completed).at(-1)}
+              previous={history.find((session) => session.exercises.some((item) => item.name === exercise.name))?.exercises.find((item) => item.name === exercise.name)}
               onUpdate={(setId, field, value) => updateSet(exercise.id, setId, field, value)}
               onToggle={(setId, wasCompleted) => {
                 toggleSet(exercise.id, setId);
@@ -96,6 +96,8 @@ export default function WorkoutScreen() {
               }}
             />
           ))}
+
+          <View style={styles.notesCard}><Text style={styles.notesTitle}>Workout notes</Text><Text style={styles.notesHelp}>Record technique cues, how you felt, or what to adjust next time.</Text><TextInput accessibilityLabel="Workout notes" value={activeWorkout.notes ?? ''} onChangeText={updateWorkoutNotes} multiline maxLength={500} placeholder="Optional notes…" placeholderTextColor={colors.textMuted} style={styles.notesInput} /></View>
 
           <Pressable accessibilityRole="button" accessibilityLabel="Finish workout and save completed sets" disabled={progress.complete === 0} style={[styles.completeButton, progress.complete === 0 && styles.disabled]} onPress={finish}>
             <Ionicons name="trophy" size={26} color={colors.white} />
@@ -127,9 +129,9 @@ export default function WorkoutScreen() {
 function ExerciseLogger({ exercise, index, previous, onUpdate, onToggle, onKind, onRemove, onAdd, onSkip, onSubstitute }: {
   exercise: ActiveExercise;
   index: number;
-  onUpdate: (setId: string, field: 'reps' | 'weight', value: string) => void;
+  onUpdate: (setId: string, field: 'reps' | 'weight' | 'rpe', value: string) => void;
   onToggle: (setId: string, wasCompleted: boolean) => void;
-  previous?: { reps: string; weight: string };
+  previous?: ActiveExercise;
   onKind: (setId: string, kind: 'warmup' | 'working') => void;
   onRemove: (setId: string) => void;
   onAdd: (copyPrevious?: boolean) => void;
@@ -137,26 +139,37 @@ function ExerciseLogger({ exercise, index, previous, onUpdate, onToggle, onKind,
   onSubstitute: () => void;
 }) {
   const isCardio = exercise.type === 'Cardio';
+  const isTimed = exercise.type === 'Timed';
+  const isDuration = exercise.type === 'Duration';
+  const previousSets = previous?.logs.filter((set) => set.completed && set.kind !== 'warmup') ?? [];
+  const previousBestSet = previousSets.slice().sort((a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0) || (Number(b.reps) || 0) - (Number(a.reps) || 0))[0];
+  const previousBestWeight = Number(previousBestSet?.weight) || 0;
+  const previousBestReps = Number(previousBestSet?.reps) || 0;
+  const findStartingWeight = !previous && exercise.type === 'Strength' && exercise.equipment !== 'Floor' && exercise.suggestedWeight === 0;
   return (
     <View style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
         <View style={[styles.exerciseIndex, index % 2 === 1 && styles.exerciseIndexWarm]}><Text style={styles.exerciseIndexText}>{index + 1}</Text></View>
         <View style={styles.exerciseCopy}>
           <Text style={styles.exerciseName}>{exercise.name}</Text>
-          <Text style={styles.exerciseTarget}>{isCardio ? `${exercise.durationMinutes ?? 20} min${exercise.distanceKm ? ` · ${exercise.distanceKm} km` : ''}` : `${exercise.sets} sets × ${exercise.repTarget} reps · ${Math.round(exercise.restSeconds / 60)} min break`}</Text>
+          <Text style={styles.exerciseTarget}>{isCardio || isDuration ? `${exercise.repTarget}${isCardio && exercise.distanceKm ? ` · ${exercise.distanceKm} km` : ''}` : isTimed ? `${exercise.setTarget ?? exercise.sets} sets × ${exercise.repTarget} · ${exercise.restSeconds} sec break` : `${exercise.setTarget ?? exercise.sets} sets × ${exercise.repTarget} reps · ${exercise.restSeconds >= 120 ? `${exercise.restSeconds / 60} min` : `${exercise.restSeconds} sec`} break`}</Text>
         </View>
       </View>
-      {previous ? <Text style={styles.previous}>Previous: {previous.weight || 'bodyweight'} × {previous.reps}</Text> : null}
+      {exercise.notes ? <Text style={styles.exerciseNote}>{exercise.notes}</Text> : null}
+      {previousBestSet ? <Text style={styles.previous}>Previous best: {previousBestWeight ? `${previousBestWeight} × ` : ''}{previousBestReps}{isTimed ? ' sec' : ' reps'}{previousBestSet.rpe ? ` · RPE ${previousBestSet.rpe}` : ''}</Text> : null}
+      {findStartingWeight ? <View style={styles.startingWeight}><Text style={styles.startingWeightTitle}>Find Starting Weight</Text><Text style={styles.startingWeightText}>1. Begin light.  2. Perform controlled reps.  3. Add a small amount only if technique stays solid and you could still do 2–3 good reps. Save that load—no max test or failure set needed.</Text></View> : null}
 
       <View style={styles.setHeader}>
         <Text style={[styles.setHeading, styles.setNumber]}>{isCardio ? 'Round' : 'Set'}</Text>
-        <Text style={styles.setHeading}>{isCardio ? 'Distance' : 'Weight'}</Text>
-        <Text style={styles.setHeading}>{isCardio ? 'Minutes' : 'Reps'}</Text>
+        <Text style={styles.setHeading}>{isCardio ? 'Distance' : isTimed || isDuration ? 'Load' : 'Weight'}</Text>
+        <Text style={styles.setHeading}>{isCardio || isDuration ? 'Minutes' : isTimed ? 'Seconds' : 'Reps'}</Text>
+        <Text style={[styles.setHeading, styles.rpeHeading]}>RPE</Text>
         <Text style={styles.doneHeading}>Done</Text>
       </View>
 
-      {exercise.logs.map((set, setIndex) => (
-        <View key={set.id} style={[styles.setRow, set.completed && styles.completedRow]}>
+      {exercise.logs.map((set, setIndex) => {
+        const isPb = set.completed && set.kind !== 'warmup' && ((Number(set.weight) || 0) > previousBestWeight || ((Number(set.weight) || 0) === previousBestWeight && (Number(set.reps) || 0) > previousBestReps));
+        return <View key={set.id} style={[styles.setRow, set.completed && styles.completedRow]}>
           <Pressable accessibilityRole="button" accessibilityLabel={`Set ${setIndex + 1} type ${set.kind ?? 'working'}. Tap to change; hold to remove.`} onPress={() => onKind(set.id, set.kind === 'warmup' ? 'working' : 'warmup')} onLongPress={() => onRemove(set.id)} style={[styles.setBubble, set.kind === 'warmup' && styles.warmupBubble]}><Text style={styles.setCount}>{set.kind === 'warmup' ? 'W' : setIndex + 1}</Text></Pressable>
           <TextInput
             accessibilityLabel={`Set ${setIndex + 1} ${isCardio ? 'distance' : 'weight'}`}
@@ -178,16 +191,27 @@ function ExerciseLogger({ exercise, index, previous, onUpdate, onToggle, onKind,
             placeholder={isCardio ? 'min' : exercise.repTarget.split('–')[0]}
             placeholderTextColor={colors.textMuted}
           />
+          <TextInput
+            accessibilityLabel={`Set ${setIndex + 1} RPE`}
+            value={set.rpe ?? ''}
+            onChangeText={(value) => onUpdate(set.id, 'rpe', value)}
+            style={[styles.input, styles.rpeInput, set.completed && styles.completedInput]}
+            keyboardType="decimal-pad"
+            selectTextOnFocus
+            maxLength={4}
+            placeholder="—"
+            placeholderTextColor={colors.textMuted}
+          />
           <Pressable
             accessibilityRole="checkbox"
             accessibilityLabel={`Set ${setIndex + 1} done`}
             accessibilityState={{ checked: set.completed }}
             onPress={() => onToggle(set.id, set.completed)}
             style={[styles.check, set.completed && styles.checked]}>
-            <Ionicons name={set.completed ? 'checkmark' : 'ellipse-outline'} size={21} color={set.completed ? colors.white : colors.textMuted} />
+            <Ionicons name={isPb ? 'trophy' : set.completed ? 'checkmark' : 'ellipse-outline'} size={isPb ? 17 : 21} color={set.completed ? colors.white : colors.textMuted} />
           </Pressable>
-        </View>
-      ))}
+        </View>;
+      })}
 
       <View style={styles.quickActions}><Pressable accessibilityRole="button" onPress={() => onAdd(false)} style={styles.addSet}>
         <Ionicons name="add-circle-outline" size={19} color={colors.accent} />
@@ -226,10 +250,15 @@ const styles = StyleSheet.create({
   exerciseName: { color: colors.text, fontSize: 17, fontWeight: '900', letterSpacing: -0.2 },
   exerciseTarget: { color: colors.textMuted, fontSize: 11, marginTop: 5 },
   previous: { color: colors.success, fontSize: 11, fontWeight: '800', marginBottom: 7 },
+  exerciseNote: { color: colors.textMuted, fontSize: 11, lineHeight: 16, marginBottom: 7 },
+  startingWeight: { backgroundColor: colors.accentDim, borderRadius: 13, padding: 11, marginBottom: 9 },
+  startingWeightTitle: { color: colors.accent, fontSize: 11, fontWeight: '900' },
+  startingWeightText: { color: colors.text, fontSize: 10, lineHeight: 15, marginTop: 4 },
   setHeader: { height: 32, flexDirection: 'row', alignItems: 'center', gap: 8 },
   setHeading: { flex: 1, color: colors.textMuted, textAlign: 'center', fontSize: 10, fontWeight: '800' },
   setNumber: { flex: 0, width: 38 },
   doneHeading: { width: 50, color: colors.textMuted, textAlign: 'center', fontSize: 10, fontWeight: '800' },
+  rpeHeading: { flex: 0, width: 43 },
   setRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: colors.line },
   completedRow: { backgroundColor: colors.successDim, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 13, borderTopColor: 'transparent' },
   setBubble: { width: 38, alignItems: 'center' },
@@ -237,6 +266,7 @@ const styles = StyleSheet.create({
   setCount: { color: colors.text, fontSize: 14, fontWeight: '900' },
   input: { flex: 1, minWidth: 0, height: 42, paddingHorizontal: 7, textAlign: 'center', borderRadius: 12, color: colors.text, backgroundColor: colors.ink, fontFamily: 'SpaceMono', fontSize: 15, borderWidth: 1, borderColor: colors.line },
   completedInput: { borderColor: colors.success, backgroundColor: colors.surface },
+  rpeInput: { flex: 0, width: 43 },
   check: { width: 50, height: 42, borderRadius: 13, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
   checked: { backgroundColor: colors.success, borderColor: colors.success },
   quickActions: { flexDirection: 'row', justifyContent: 'center', gap: 12 },
@@ -249,6 +279,10 @@ const styles = StyleSheet.create({
   completeCopy: { flex: 1, marginLeft: 12 },
   completeTitle: { color: colors.white, fontSize: 17, fontWeight: '900' },
   completeSub: { color: '#E8E1FF', fontSize: 11, marginTop: 3 },
+  notesCard: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, padding: spacing.md, marginBottom: spacing.md },
+  notesTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  notesHelp: { color: colors.textMuted, fontSize: 10, lineHeight: 15, marginTop: 4 },
+  notesInput: { minHeight: 88, borderRadius: 13, backgroundColor: colors.ink, borderWidth: 1, borderColor: colors.line, color: colors.text, fontSize: 13, lineHeight: 19, padding: 12, marginTop: 10, textAlignVertical: 'top' },
   restBar: { position: 'absolute', alignSelf: 'center', width: '94%', maxWidth: 720, bottom: 9, minHeight: 78, borderRadius: 20, padding: 11, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.accentSoft, flexDirection: 'row', alignItems: 'center', shadowColor: '#392776', shadowOpacity: 0.18, shadowRadius: 20 },
   restIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center' },
   restCopy: { flex: 1, marginLeft: 11 },
