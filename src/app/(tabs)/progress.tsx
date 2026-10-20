@@ -15,8 +15,8 @@ export default function ProgressScreen() {
   const totalMinutes = Math.round(history.reduce((sum, session) => sum + session.durationSeconds, 0) / 60);
   const recent = history.slice(0, 8).reverse();
   const maxVolume = Math.max(1, ...recent.map((session) => session.totalVolume));
-  const planned = schedule.filter((item) => !item.optional && item.status !== 'missed').length;
-  const completedPlanned = schedule.filter((item) => !item.optional && item.status === 'completed').length;
+  const completedPlanned = history.filter((session) => session.scheduledWorkoutId).length;
+  const planned = completedPlanned + schedule.filter((item) => !item.optional && item.status !== 'completed').length;
   const bestSet = history.flatMap((session) => session.exercises).flatMap((exercise) => exercise.logs.map((set) => ({ name: exercise.name, weight: Number(set.weight) || 0, reps: Number(set.reps) || 0 }))).sort((a, b) => b.weight - a.weight)[0];
 
   return (
@@ -53,6 +53,7 @@ export default function ProgressScreen() {
 
       <SectionHeader title="Past workouts" />
       <View style={styles.historyList}>
+        {!history.length ? <View style={styles.emptyHistory}><Ionicons name="sparkles-outline" size={25} color={colors.accent} /><Text style={styles.emptyHistoryTitle}>Your first win starts here</Text><Text style={styles.emptyHistoryText}>Finish any workout and it will appear here automatically.</Text></View> : null}
         {history.map((session, index) => (
           <View key={session.id} style={styles.historyRow}>
             <View style={[styles.historyIcon, index === 0 && styles.latestIcon]}>
@@ -103,4 +104,7 @@ const styles = StyleSheet.create({
   insight: { flex: 1, minHeight: 85, borderRadius: radius.md, backgroundColor: colors.surface, padding: 13, justifyContent: 'center' },
   insightValue: { color: colors.text, fontSize: 20, fontWeight: '900' },
   insightLabel: { color: colors.textMuted, fontSize: 10, lineHeight: 14, marginTop: 5 },
+  emptyHistory: { minHeight: 132, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  emptyHistoryTitle: { color: colors.text, fontSize: 14, fontWeight: '900', marginTop: 8 },
+  emptyHistoryText: { color: colors.textMuted, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 4 },
 });

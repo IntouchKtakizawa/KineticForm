@@ -66,6 +66,17 @@ const seeds: ExerciseSeed[] = [
   ['elliptical', 'Elliptical Trainer', 'Cardio', 'Legs', 'Machines', 'Cardio', 'Cyclic', 1, '15–45 min', 0],
   ['outdoor-run', 'Outdoor Run', 'Cardio', 'Legs', 'Bodyweight', 'Cardio', 'Run', 1, '15–60 min', 0],
   ['walking', 'Brisk Walking', 'Cardio', 'Legs', 'Bodyweight', 'Cardio', 'Walk', 1, '15–60 min', 0],
+  ['bodyweight-squat', 'Bodyweight Squat', 'Legs', 'Glutes, Core', 'Bodyweight', 'Strength', 'Squat', 3, '10–20', 45],
+  ['reverse-lunge', 'Reverse Lunge', 'Legs', 'Glutes, Core', 'Bodyweight', 'Strength', 'Lunge', 3, '8–12', 60],
+  ['incline-push-up', 'Incline Push-Up', 'Chest', 'Triceps, Core', 'Bodyweight', 'Strength', 'Push', 3, '8–15', 60],
+  ['bird-dog', 'Bird Dog', 'Core', 'Back, Glutes', 'Bodyweight', 'Strength', 'Brace', 3, '8–12', 45],
+  ['mountain-climber', 'Mountain Climber', 'Full body', 'Core, Shoulders', 'Bodyweight', 'Conditioning', 'Full body', 3, '20–40 sec', 45],
+  ['farmer-carry', 'Dumbbell Farmer Carry', 'Full body', 'Core, Forearms', 'Dumbbells', 'Strength', 'Carry', 3, '30–60 sec', 60],
+  ['wall-sit', 'Wall Sit', 'Legs', 'Glutes, Core', 'Bodyweight', 'Isometric', 'Squat', 3, '20–60 sec', 45],
+  ['cat-cow', 'Cat-Cow', 'Mobility', 'Back, Core', 'Bodyweight', 'Mobility', 'Spinal mobility', 1, '6–10', 0],
+  ['hip-flexor-stretch', 'Hip Flexor Stretch', 'Mobility', 'Legs', 'Bodyweight', 'Mobility', 'Hip mobility', 2, '30–45 sec/side', 15],
+  ['open-book-rotation', 'Open Book Rotation', 'Mobility', 'Back, Shoulders', 'Bodyweight', 'Mobility', 'Thoracic mobility', 2, '6–10/side', 15],
+  ['childs-pose', "Child's Pose", 'Mobility', 'Back, Shoulders', 'Bodyweight', 'Mobility', 'Recovery', 1, '30–60 sec', 0],
 ];
 
 const aliases: Record<string, string[]> = {
@@ -101,4 +112,4 @@ export const exerciseLibrary: ExerciseDefinition[] = seeds.map(([id, name, prima
   substitutions: seeds.filter((seed) => seed[6] === movement && seed[0] !== id).slice(0, 3).map((seed) => seed[0]),
 }));
 
-export const exerciseFilters = ['All', 'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core', 'Full body', 'Cardio', 'Bodyweight', 'Dumbbells', 'Barbell', 'Machines', 'Cables'];
+export const exerciseFilters = ['All', 'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core', 'Full body', 'Cardio', 'Mobility', 'Bodyweight', 'Dumbbells', 'Barbell', 'Machines', 'Cables'];

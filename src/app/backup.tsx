@@ -2,29 +2,33 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing } from '@/constants/theme';
 import { useWorkout, validateBackup } from '@/store/workout-store';
 import { KineticFormBackup } from '@/types/workout';
 import { downloadBackup, readBackupFile } from '@/utils/backup';
+import { confirmAction, showMessage } from '@/utils/alerts';
 
 export default function BackupScreen() {
   const { plans, history, schedule, customExercises, programs, createBackup, restoreBackup } = useWorkout();
   const [pending, setPending] = useState<KineticFormBackup | null>(null);
   const [busy, setBusy] = useState(false);
-  const exportData = async () => { setBusy(true); try { await downloadBackup(createBackup()); } catch (error) { Alert.alert('Backup could not be saved', error instanceof Error ? error.message : 'Try again.'); } finally { setBusy(false); } };
+  const exportData = async () => { setBusy(true); try { await downloadBackup(createBackup()); } catch (error) { showMessage('Backup could not be saved', error instanceof Error ? error.message : 'Try again.'); } finally { setBusy(false); } };
   const chooseBackup = async () => {
     const result = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
     if (result.canceled) return;
     try { const asset = result.assets[0]; const backup = validateBackup(JSON.parse(await readBackupFile({ uri: asset.uri, file: 'file' in asset ? asset.file : undefined }))); setPending(backup); }
-    catch (error) { Alert.alert('Backup not accepted', error instanceof Error ? error.message : 'The file could not be read.'); }
+    catch (error) { showMessage('Backup not accepted', error instanceof Error ? error.message : 'The file could not be read.'); }
   };
-  const apply = (mode: 'merge' | 'replace') => {
+  const apply = async (mode: 'merge' | 'replace') => {
     if (!pending) return;
-    const run = () => { restoreBackup(pending, mode); setPending(null); Alert.alert('Restore complete', mode === 'merge' ? 'New and matching records were merged by ID.' : 'Your current data was replaced with the backup.'); };
-    if (mode === 'replace') Alert.alert('Replace all local data?', 'A recovery copy will be downloaded first. Keep it somewhere safe.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Back up and replace', style: 'destructive', onPress: async () => { try { await downloadBackup(createBackup()); run(); } catch { Alert.alert('Replace cancelled', 'The recovery backup could not be saved.'); } } }]); else run();
+    const run = () => { restoreBackup(pending, mode); setPending(null); showMessage('Restore complete', mode === 'merge' ? 'New and matching records were merged by ID.' : 'Your current data was replaced with the backup.'); };
+    if (mode !== 'replace') return run();
+    const confirmed = await confirmAction({ title: 'Replace all local data?', message: 'A recovery copy will be downloaded first. Keep it somewhere safe.', confirmText: 'Back up and replace', destructive: true });
+    if (!confirmed) return;
+    try { await downloadBackup(createBackup()); run(); } catch { showMessage('Replace cancelled', 'The recovery backup could not be saved.'); }
   };
   return <SafeAreaView style={styles.safe} edges={['top', 'bottom']}><View style={styles.header}><Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.text} /></Pressable><Text style={styles.headerTitle}>Backup & restore</Text><View style={styles.back} /></View><ScrollView contentContainerStyle={styles.content}>
     <View style={styles.hero}><Ionicons name="shield-checkmark" size={34} color={colors.success} /><Text style={styles.title}>Your data, portable</Text><Text style={styles.body}>Download your profile, workouts, history, schedules, programs, custom exercises, preferences, and any active workout. Nothing is uploaded.</Text></View>

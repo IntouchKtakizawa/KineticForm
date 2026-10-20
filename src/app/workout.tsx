@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing } from '@/constants/theme';
 import { exerciseLibrary } from '@/data/exercises';
 import { useWorkout } from '@/store/workout-store';
 import { ActiveExercise } from '@/types/workout';
+import { confirmAction, showMessage } from '@/utils/alerts';
 
 function formatTime(totalSeconds: number) {
   const seconds = Math.max(0, totalSeconds);
@@ -16,6 +17,8 @@ function formatTime(totalSeconds: number) {
 
 export default function WorkoutScreen() {
   const { hydrated, activeWorkout, history, updateSet, updateWorkoutNotes, toggleSet, setSetKind, addSet, removeSet, skipExercise, substituteExercise, startRest, pauseRest, skipRest, resetRest, finishWorkout, discardWorkout } = useWorkout();
+  const { width } = useWindowDimensions();
+  const compact = width < 370;
   const [now, setNow] = useState(0);
   const [enteredWithWorkout] = useState(activeWorkout !== null);
 
@@ -39,11 +42,14 @@ export default function WorkoutScreen() {
   const elapsed = Math.floor((currentTime - activeWorkout.startedAt) / 1000);
   const restRemaining = activeWorkout.restEndAt ? Math.max(0, Math.round((activeWorkout.restEndAt - currentTime) / 1000)) : 0;
 
-  const requestDiscard = () => Alert.alert('Leave this workout?', 'Your ticks and numbers from this workout will be removed.', [
-    { text: 'Keep going', style: 'cancel' },
-    { text: 'Leave', style: 'destructive', onPress: () => { discardWorkout(); router.replace('/'); } },
-  ]);
-  const finish = () => Alert.alert('Finish this workout?', `${progress.complete} completed sets will be saved. You can undo set ticks before continuing.`, [{ text: 'Keep logging', style: 'cancel' }, { text: 'Finish and save', onPress: () => { finishWorkout(); router.replace('/progress'); } }]);
+  const requestDiscard = async () => {
+    const confirmed = await confirmAction({ title: 'Leave this workout?', message: 'Your ticks and numbers from this workout will be removed.', confirmText: 'Leave', cancelText: 'Keep going', destructive: true });
+    if (confirmed) { discardWorkout(); router.replace('/'); }
+  };
+  const finish = async () => {
+    const confirmed = await confirmAction({ title: 'Finish this workout?', message: `${progress.complete} completed sets will be saved. You can undo set ticks before continuing.`, confirmText: 'Finish and save', cancelText: 'Keep logging' });
+    if (confirmed) { finishWorkout(); router.replace('/progress'); }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -87,12 +93,12 @@ export default function WorkoutScreen() {
               onKind={(setId, kind) => setSetKind(exercise.id, setId, kind)}
               onRemove={(setId) => removeSet(exercise.id, setId)}
               onAdd={(copy) => addSet(exercise.id, copy)}
-              onSkip={() => Alert.alert('Skip this exercise?', 'It will be removed from this active workout only.', [{ text: 'Keep', style: 'cancel' }, { text: 'Skip', onPress: () => skipExercise(exercise.id) }])}
+              onSkip={async () => { if (await confirmAction({ title: 'Skip this exercise?', message: 'It will be removed from this active workout only.', confirmText: 'Skip', cancelText: 'Keep', destructive: true })) skipExercise(exercise.id); }}
               onSubstitute={() => {
                 const choices = exerciseLibrary.filter((item) => item.movement === exercise.movement && item.name !== exercise.name);
                 const replacement = choices[0];
-                if (replacement) Alert.alert('Use a similar movement?', `${replacement.name} trains a similar pattern, but it is not identical.`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Substitute', onPress: () => substituteExercise(exercise.id, replacement) }]);
-                else Alert.alert('No close substitute found', 'Use Skip, then add a different movement to the reusable workout later.');
+                if (replacement) confirmAction({ title: 'Use a similar movement?', message: `${replacement.name} trains a similar pattern, but it is not identical.`, confirmText: 'Substitute' }).then((confirmed) => { if (confirmed) substituteExercise(exercise.id, replacement); });
+                else showMessage('No close substitute found', 'Use Skip, then add a different movement to the reusable workout later.');
               }}
             />
           ))}
@@ -110,15 +116,15 @@ export default function WorkoutScreen() {
         </ScrollView>
 
         {restRemaining > 0 || activeWorkout.pausedRestSeconds ? (
-          <View style={styles.restBar}>
-            <View style={styles.restIcon}><Ionicons name="timer" size={22} color={colors.accent} /></View>
-            <View style={styles.restCopy}>
+          <View style={[styles.restBar, compact && styles.restBarCompact]}>
+            {!compact ? <View style={styles.restIcon}><Ionicons name="timer" size={22} color={colors.accent} /></View> : null}
+            <View style={[styles.restCopy, compact && styles.restCopyCompact]}>
               <Text style={styles.restLabel}>{activeWorkout.pausedRestSeconds ? 'Timer paused' : 'Take a break'}</Text>
               <Text style={styles.restTime}>{formatTime(activeWorkout.pausedRestSeconds ?? restRemaining)}</Text>
             </View>
-            <Pressable accessibilityRole="button" onPress={pauseRest} style={styles.restAction}><Text style={styles.restActionText}>{activeWorkout.pausedRestSeconds ? 'Resume' : 'Pause'}</Text></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Add 30 seconds to rest" onPress={() => activeWorkout.pausedRestSeconds ? resetRest(activeWorkout.pausedRestSeconds + 30) : startRest(restRemaining + 30)} style={styles.restAction}><Text style={styles.restActionText}>+30 sec</Text></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Skip rest timer" onPress={skipRest} style={[styles.restAction, styles.skipAction]}><Text style={styles.skipText}>Skip</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={activeWorkout.pausedRestSeconds ? 'Resume rest timer' : 'Pause rest timer'} onPress={pauseRest} style={[styles.restAction, compact && styles.restActionCompact]}>{compact ? <Ionicons name={activeWorkout.pausedRestSeconds ? 'play' : 'pause'} size={17} color={colors.accent} /> : <Text style={styles.restActionText}>{activeWorkout.pausedRestSeconds ? 'Resume' : 'Pause'}</Text>}</Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Add 30 seconds to rest" onPress={() => activeWorkout.pausedRestSeconds ? resetRest(activeWorkout.pausedRestSeconds + 30) : startRest(restRemaining + 30)} style={[styles.restAction, compact && styles.restActionCompact]}><Text style={styles.restActionText}>+30</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Skip rest timer" onPress={skipRest} style={[styles.restAction, styles.skipAction, compact && styles.restActionCompact]}><Text style={styles.skipText}>Skip</Text></Pressable>
           </View>
         ) : null}
       </KeyboardAvoidingView>
@@ -161,7 +167,7 @@ function ExerciseLogger({ exercise, index, previous, onUpdate, onToggle, onKind,
 
       <View style={styles.setHeader}>
         <Text style={[styles.setHeading, styles.setNumber]}>{isCardio ? 'Round' : 'Set'}</Text>
-        <Text style={styles.setHeading}>{isCardio ? 'Distance' : isTimed || isDuration ? 'Load' : 'Weight'}</Text>
+        <Text style={styles.setHeading}>{isCardio ? 'Distance' : isDuration ? 'Optional load' : isTimed ? 'Load' : 'Weight'}</Text>
         <Text style={styles.setHeading}>{isCardio || isDuration ? 'Minutes' : isTimed ? 'Seconds' : 'Reps'}</Text>
         <Text style={[styles.setHeading, styles.rpeHeading]}>RPE</Text>
         <Text style={styles.doneHeading}>Done</Text>
@@ -284,11 +290,14 @@ const styles = StyleSheet.create({
   notesHelp: { color: colors.textMuted, fontSize: 10, lineHeight: 15, marginTop: 4 },
   notesInput: { minHeight: 88, borderRadius: 13, backgroundColor: colors.ink, borderWidth: 1, borderColor: colors.line, color: colors.text, fontSize: 13, lineHeight: 19, padding: 12, marginTop: 10, textAlignVertical: 'top' },
   restBar: { position: 'absolute', alignSelf: 'center', width: '94%', maxWidth: 720, bottom: 9, minHeight: 78, borderRadius: 20, padding: 11, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.accentSoft, flexDirection: 'row', alignItems: 'center', shadowColor: '#392776', shadowOpacity: 0.18, shadowRadius: 20 },
+  restBarCompact: { width: '97%', minHeight: 70, padding: 8 },
   restIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center' },
   restCopy: { flex: 1, marginLeft: 11 },
+  restCopyCompact: { marginLeft: 4 },
   restLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '800' },
   restTime: { color: colors.text, fontFamily: 'SpaceMono', fontSize: 19, marginTop: 2 },
   restAction: { height: 42, paddingHorizontal: 11, borderRadius: 13, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center', marginLeft: 6 },
+  restActionCompact: { width: 42, paddingHorizontal: 0, marginLeft: 4 },
   restActionText: { color: colors.accent, fontSize: 11, fontWeight: '900' },
   skipAction: { backgroundColor: colors.accent },
   skipText: { color: colors.white, fontSize: 11, fontWeight: '900' },

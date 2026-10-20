@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing } from '@/constants/theme';
 import { useWorkout } from '@/store/workout-store';
+import { showMessage } from '@/utils/alerts';
 
 const avatars = ['🏋️', '💪', '⚡', '🔥', '🏃', '🧠', '🎸', '🚀'];
 const goals = ['Build strength', 'Build muscle', 'General fitness', 'Improve conditioning', 'Move better', 'Sport performance'];
@@ -46,9 +47,9 @@ export default function AboutYouScreen() {
     const parsedWeight = parseOptional(bodyWeight);
     const parsedTarget = parseOptional(targetWeight);
     const invalid = [parsedAge, parsedHeight, parsedWeight, parsedTarget].some((value) => value !== undefined && (!Number.isFinite(value) || value <= 0));
-    if (invalid) return Alert.alert('Check your details', 'Use positive numbers, or leave optional fields blank.');
-    if (parsedAge !== undefined && (parsedAge < 10 || parsedAge > 100)) return Alert.alert('Check your age', 'Enter an age from 10 to 100.');
-    if (parsedHeight !== undefined && (parsedHeight < 80 || parsedHeight > 250)) return Alert.alert('Check your height', 'Enter a height from 80 to 250 cm.');
+    if (invalid) return showMessage('Check your details', 'Use positive numbers, or leave optional fields blank.');
+    if (parsedAge !== undefined && (parsedAge < 10 || parsedAge > 100)) return showMessage('Check your age', 'Enter an age from 10 to 100.');
+    if (parsedHeight !== undefined && (parsedHeight < 80 || parsedHeight > 250)) return showMessage('Check your height', 'Enter a height from 80 to 250 cm.');
     const toKg = (value?: number) => value === undefined ? undefined : weightUnit === 'kg' ? value : value / KG_TO_LB;
     updateProfile({ avatarEmoji, age: parsedAge, heightCm: parsedHeight, bodyWeightKg: toKg(parsedWeight), targetWeightKg: toKg(parsedTarget), activityLevel, goalNote: goalNote.trim() }, name);
     completeOnboarding({ ...preferences, goal, experience });

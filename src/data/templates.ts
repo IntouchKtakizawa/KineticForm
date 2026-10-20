@@ -1,4 +1,5 @@
 import { WorkoutTemplate } from '@/types/workout';
+import { workoutCatalog } from '@/data/workout-catalog';
 
 const guidance = 'Start light and use the first session to find a controlled working weight. Keep 2–3 good reps in reserve; technique comes before load.';
 
@@ -96,4 +97,56 @@ export const kentaWorkoutTemplate: WorkoutTemplate = {
   ],
 };
 
-export const builtInTemplates = [kentaWorkoutTemplate];
+const catalogPlan = (id: string) => {
+  const plan = workoutCatalog.find((item) => item.plan.id === id)?.plan;
+  if (!plan) throw new Error(`Missing built-in workout: ${id}`);
+  return plan;
+};
+
+export const simpleStartTemplate: WorkoutTemplate = {
+  id: 'simple-start-template',
+  name: 'Simple Start',
+  description: 'A low-pressure three-day plan for building consistency at home, with short sessions and no required equipment.',
+  weeklyGoal: 3,
+  schedule: [
+    { day: 1, label: '20-Minute Reset', planId: 'catalog-quick-reset', duration: '20 min' },
+    { day: 2, label: 'Rest', duration: '—', rest: true },
+    { day: 3, label: 'Cardio + Mobility', planId: 'catalog-cardio-mobility', duration: '25 min' },
+    { day: 4, label: 'Rest', duration: '—', rest: true },
+    { day: 5, label: '20-Minute Reset', planId: 'catalog-quick-reset', duration: '20 min' },
+    { day: 6, label: 'Rest', duration: '—', rest: true },
+    { day: 0, label: 'Easy walk', planId: 'catalog-cardio-mobility', duration: '25 min', optional: true },
+  ],
+  progression: [
+    'First make all three main sessions feel routine; consistency matters more than adding difficulty.',
+    'When every set is controlled, add two reps per set or choose a slightly harder variation.',
+    'After four steady weeks, move to Dumbbell Builder or create your own plan from these workouts.',
+  ],
+  restGuidance: ['Rest 45–60 seconds between sets, or longer until your breathing is calm.', 'Optional Sunday movement never counts as a missed workout.'],
+  plans: [catalogPlan('catalog-quick-reset'), catalogPlan('catalog-cardio-mobility')],
+};
+
+export const dumbbellBuilderTemplate: WorkoutTemplate = {
+  id: 'dumbbell-builder-template',
+  name: 'Dumbbell Builder',
+  description: 'Three balanced strength sessions using dumbbells, with enough recovery to make steady progress.',
+  weeklyGoal: 3,
+  schedule: [
+    { day: 1, label: 'Dumbbell Upper', planId: 'catalog-dumbbell-upper', duration: '40 min' },
+    { day: 2, label: 'Rest', duration: '—', rest: true },
+    { day: 3, label: 'Dumbbell Lower + Core', planId: 'catalog-dumbbell-lower', duration: '40 min' },
+    { day: 4, label: 'Cardio + Mobility', planId: 'catalog-cardio-mobility', duration: '25 min', optional: true },
+    { day: 5, label: 'Rest', duration: '—', rest: true },
+    { day: 6, label: 'Dumbbell Full Body', planId: 'catalog-dumbbell-full-body', duration: '35 min' },
+    { day: 0, label: 'Rest', duration: '—', rest: true },
+  ],
+  progression: [
+    'Keep 2–3 controlled reps in reserve on working sets.',
+    'Reach the top of the rep range on every set before increasing the dumbbell weight.',
+    'If recovery or technique slips, repeat the same load or remove one set for that day.',
+  ],
+  restGuidance: ['Rest 75–90 seconds after compound lifts.', 'Rest 45–60 seconds after arms, shoulders, calves, and core work.'],
+  plans: [catalogPlan('catalog-dumbbell-upper'), catalogPlan('catalog-dumbbell-lower'), catalogPlan('catalog-dumbbell-full-body'), catalogPlan('catalog-cardio-mobility')],
+};
+
+export const builtInTemplates = [kentaWorkoutTemplate, simpleStartTemplate, dumbbellBuilderTemplate];

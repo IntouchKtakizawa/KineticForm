@@ -2,13 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '@/constants/theme';
 import { exerciseLibrary } from '@/data/exercises';
 import { useWorkout } from '@/store/workout-store';
 import { Exercise, ExerciseDefinition, WorkoutPlan } from '@/types/workout';
+import { showMessage } from '@/utils/alerts';
 
 const fromDefinition = (exercise: ExerciseDefinition): Exercise => ({ id: `${exercise.id}-${Date.now()}`, name: exercise.name, muscle: exercise.primaryMuscle, equipment: exercise.equipment, type: exercise.type, movement: exercise.movement, sets: exercise.defaultSets, repTarget: exercise.defaultReps, restSeconds: exercise.defaultRest, suggestedWeight: 0, durationMinutes: exercise.type === 'Cardio' ? 20 : undefined, distanceKm: exercise.type === 'Cardio' ? 0 : undefined, notes: '' });
 
@@ -53,7 +54,7 @@ export default function BuilderScreen() {
   useEffect(() => { if (!existing) AsyncStorage.setItem('@kineticform/builder-draft', JSON.stringify({ name, notes, duration, exercises })); }, [existing, name, notes, duration, exercises]);
 
   const save = (scheduleAfter = false) => {
-    if (!name.trim() || !exercises.length) return Alert.alert('Workout needs a little more', 'Add a name and at least one exercise.');
+    if (!name.trim() || !exercises.length) return showMessage('Workout needs a little more', 'Add a name and at least one exercise.');
     const plan: WorkoutPlan = { id: existing?.id ?? `plan-${Date.now()}`, name: name.trim(), focus: Array.from(new Set(exercises.map((item) => item.muscle))).slice(0, 3).join(' · '), durationMinutes: Math.max(10, Number(duration) || 45), exercises, notes: notes.trim(), createdAt: existing?.createdAt ?? Date.now() };
     savePlan(plan);
     AsyncStorage.removeItem('@kineticform/builder-draft');

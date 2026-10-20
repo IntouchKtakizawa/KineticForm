@@ -56,7 +56,7 @@ export async function connectGoogleCalendar() {
       },
     });
     if (!client) reject(new Error('Google sign-in is unavailable.'));
-    else client.requestAccessToken({ prompt: 'consent' });
+    else client.requestAccessToken({ prompt: 'select_account' });
   });
 }
 
@@ -104,7 +104,7 @@ export async function deleteGoogleEvent(eventId: string) {
 export async function listGoogleWorkoutEvents() {
   const timeMin = new Date().toISOString();
   const timeMax = new Date(Date.now() + 90 * 86400000).toISOString();
-  return calendarFetch(`/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&q=${encodeURIComponent('KineticForm')}`) as Promise<{ items?: { id: string; summary: string; htmlLink: string; start: { dateTime?: string; date?: string }; end: { dateTime?: string; date?: string } }[] }>;
+  return calendarFetch(`/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&q=${encodeURIComponent('KineticForm')}`) as Promise<{ items?: { id: string; summary: string; htmlLink: string; start: { dateTime?: string; date?: string }; end: { dateTime?: string; date?: string }; extendedProperties?: { private?: { kineticFormScheduleId?: string; kineticFormPlanId?: string } } }[] }>;
 }
 
 export function disconnectGoogleCalendar() {

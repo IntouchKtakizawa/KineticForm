@@ -1,20 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/constants/theme';
 import { connectGoogleCalendar, createGoogleEvent, deleteGoogleEvent, disconnectGoogleCalendar, exportScheduleCalendar, googleCalendarConfigured, googleCalendarFallbackUrl, listGoogleWorkoutEvents, updateGoogleEvent } from '@/services/google-calendar';
 import { useWorkout } from '@/store/workout-store';
 import { ScheduledWorkout } from '@/types/workout';
+import { confirmAction, showMessage } from '@/utils/alerts';
 
 const pad = (value: number) => String(value).padStart(2, '0');
 const toDateValue = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 const toTimeValue = (date: Date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 
 export default function ScheduleScreen() {
-  const { plans, schedule, saveSchedule, removeSchedule, markSchedule, startWorkout } = useWorkout();
+  const { plans, schedule, activeWorkout, saveSchedule, removeSchedule, markSchedule, startWorkout } = useWorkout();
   const [referenceNow] = useState(() => Date.now());
   const firstDate = new Date(referenceNow + 86400000);
   firstDate.setHours(17, 0, 0, 0);
@@ -30,6 +31,15 @@ export default function ScheduleScreen() {
   const [busy, setBusy] = useState(false);
 
   const sorted = useMemo(() => schedule.slice().sort((a, b) => a.startISO.localeCompare(b.startISO)), [schedule]);
+  const quickDates = useMemo(() => Array.from({ length: 7 }, (_, index) => {
+    const value = new Date(referenceNow);
+    value.setDate(value.getDate() + index);
+    return value;
+  }), [referenceNow]);
+  const weekCount = useMemo(() => schedule.filter((item) => {
+    const start = new Date(item.startISO).getTime();
+    return start >= referenceNow && start < referenceNow + 7 * 86400000;
+  }).length, [referenceNow, schedule]);
 
   const resetForm = () => {
     setEditing(null);
@@ -56,7 +66,7 @@ export default function ScheduleScreen() {
   const save = async () => {
     const plan = plans.find((item) => item.id === planId);
     const start = new Date(`${date}T${time}:00`);
-    if (!plan || Number.isNaN(start.getTime())) return Alert.alert('Check the schedule', 'Choose a workout, date, and time.');
+    if (!plan || Number.isNaN(start.getTime())) return showMessage('Check the schedule', 'Choose a workout, date, and time.');
     const previous = schedule.find((item) => item.id === editing);
     let item: ScheduledWorkout = {
       id: editing ?? `schedule-${Date.now()}`,
@@ -78,7 +88,7 @@ export default function ScheduleScreen() {
         item = { ...item, googleEventId: event.id, googleEventUrl: event.htmlLink };
       } catch (error) {
         setConnected(false);
-        Alert.alert('Saved locally', `${error instanceof Error ? error.message : 'Google Calendar could not be updated.'} Reconnect later to update the calendar event.`);
+        showMessage('Saved locally', `${error instanceof Error ? error.message : 'Google Calendar could not be updated.'} Reconnect later to update the calendar event.`);
       }
       setBusy(false);
     }
@@ -87,13 +97,24 @@ export default function ScheduleScreen() {
     resetForm();
   };
 
-  const remove = (item: ScheduledWorkout) => Alert.alert('Remove this workout?', `${item.title} will be removed from your schedule.`, [
-    { text: 'Keep', style: 'cancel' },
-    { text: 'Remove', style: 'destructive', onPress: async () => {
-      if (item.googleEventId && connected) await deleteGoogleEvent(item.googleEventId).catch(() => Alert.alert('Removed locally', 'The Google event could not be removed. Reconnect and remove it in Google Calendar.'));
-      removeSchedule(item.id);
-    } },
-  ]);
+  const remove = async (item: ScheduledWorkout) => {
+    const confirmed = await confirmAction({ title: 'Remove this workout?', message: `${item.title} will be removed from your schedule.`, confirmText: 'Remove', cancelText: 'Keep', destructive: true });
+    if (!confirmed) return;
+    removeSchedule(item.id);
+    if (item.googleEventId && connected) {
+      await deleteGoogleEvent(item.googleEventId).catch(() => showMessage('Removed locally', 'The Google event could not be removed. Reconnect and remove it in Google Calendar.'));
+    }
+  };
+  const launchWorkout = (item: ScheduledWorkout) => {
+    const plan = plans.find((entry) => entry.id === item.planId);
+    if (!plan) return;
+    if (activeWorkout && activeWorkout.planId !== plan.id) {
+      confirmAction({ title: 'Workout already in progress', message: `${activeWorkout.name} is still open. Finish or leave it before starting ${plan.name}.`, confirmText: 'Continue current', cancelText: 'Stay here' }).then((confirmed) => { if (confirmed) router.push('/workout'); });
+      return;
+    }
+    startWorkout(plan.id, item.id);
+    router.push('/workout');
+  };
 
   const connect = async () => {
     setBusy(true);
@@ -102,19 +123,40 @@ export default function ScheduleScreen() {
       setConnected(true);
       const remote = await listGoogleWorkoutEvents();
       remote.items?.forEach((event) => {
-        const matched = plans.find((plan) => event.summary.toLowerCase().includes(plan.name.toLowerCase()));
+        const linkedPlanId = event.extendedProperties?.private?.kineticFormPlanId;
+        const matched = plans.find((plan) => plan.id === linkedPlanId) ?? plans.find((plan) => event.summary.toLowerCase().includes(plan.name.toLowerCase()));
         const start = event.start.dateTime ?? event.start.date;
         const end = event.end.dateTime ?? event.end.date;
         if (!matched || !start || !end) return;
         saveSchedule({ id: `google-${event.id}`, planId: matched.id, title: matched.name, startISO: new Date(start).toISOString(), durationMinutes: Math.max(10, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000)), recurrence: 'none', status: 'upcoming', googleEventId: event.id, googleEventUrl: event.htmlLink });
       });
     }
-    catch (error) { Alert.alert('Google Calendar setup', error instanceof Error ? error.message : 'Connection failed.'); }
+    catch (error) { showMessage('Google Calendar setup', error instanceof Error ? error.message : 'Connection failed.'); }
     finally { setBusy(false); }
   };
-  const disconnect = () => { disconnectGoogleCalendar(); setConnected(false); Alert.alert('Disconnected', 'Existing Google events remain in your calendar. Local schedules are unchanged.'); };
+  const syncAll = async () => {
+    if (!connected) return connect();
+    setBusy(true);
+    let synced = 0;
+    let failed = 0;
+    for (const scheduled of schedule) {
+      const plan = plans.find((entry) => entry.id === scheduled.planId);
+      if (!plan) { failed += 1; continue; }
+      try {
+        const event = scheduled.googleEventId ? await updateGoogleEvent(scheduled, plan) : await createGoogleEvent(scheduled, plan);
+        saveSchedule({ ...scheduled, googleEventId: event.id, googleEventUrl: event.htmlLink });
+        synced += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    setBusy(false);
+    if (failed) showMessage('Calendar partly synced', `${synced} workout${synced === 1 ? '' : 's'} synced. ${failed} could not be synced; your local schedule is unchanged.`);
+    else showMessage('Calendar up to date', `${synced} workout${synced === 1 ? '' : 's'} synced with your Google Calendar.`);
+  };
+  const disconnect = () => { disconnectGoogleCalendar(); setConnected(false); showMessage('Disconnected', 'Existing Google events remain in your calendar. Local schedules are unchanged.'); };
   const openGoogleCalendar = () => Linking.openURL('https://calendar.google.com/calendar/u/0/r');
-  const exportCalendar = async () => { try { await exportScheduleCalendar(schedule, plans); } catch (error) { Alert.alert('Calendar export failed', error instanceof Error ? error.message : 'Try again.'); } };
+  const exportCalendar = async () => { try { await exportScheduleCalendar(schedule, plans); } catch (error) { showMessage('Calendar export failed', error instanceof Error ? error.message : 'Try again.'); } };
 
   return (
     <Screen>
@@ -131,7 +173,9 @@ export default function ScheduleScreen() {
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={googleCalendarConfigured ? (connected ? 'Disconnect Google Calendar' : 'Connect Google Calendar') : 'Open Google Calendar'} disabled={busy} onPress={googleCalendarConfigured ? (connected ? disconnect : connect) : openGoogleCalendar} style={[styles.connectButton, connected && styles.connectedButton]}><Text style={styles.connectText}>{connected ? 'Disconnect' : googleCalendarConfigured ? 'Connect' : 'Open'}</Text></Pressable>
       </View>
+      {connected ? <Pressable accessibilityRole="button" accessibilityLabel="Sync all scheduled workouts with Google Calendar" disabled={busy} onPress={syncAll} style={styles.syncButton}><Ionicons name="sync" size={18} color={colors.white} /><Text style={styles.syncButtonText}>{busy ? 'Syncing…' : `Sync all ${schedule.length || ''}`.trim()}</Text></Pressable> : null}
       <Pressable accessibilityRole="button" accessibilityLabel="Download all scheduled workouts as a calendar file" onPress={exportCalendar} style={styles.calendarExport}><Ionicons name="download-outline" size={18} color={colors.accent} /><View style={styles.calendarExportCopy}><Text style={styles.calendarExportTitle}>Add the full schedule to a calendar</Text><Text style={styles.calendarExportText}>Downloads a standard .ics file for Google, Apple, or Outlook Calendar.</Text></View></Pressable>
+      <View style={styles.summaryRow}><View style={styles.summaryCard}><Text style={styles.summaryNumber}>{weekCount}</Text><Text style={styles.summaryLabel}>next 7 days</Text></View><View style={styles.summaryCard}><Text style={styles.summaryNumber}>{schedule.filter((item) => item.googleEventId).length}</Text><Text style={styles.summaryLabel}>synced</Text></View><View style={styles.summaryCard}><Text style={styles.summaryNumber}>{schedule.length}</Text><Text style={styles.summaryLabel}>total planned</Text></View></View>
 
       {showForm ? (
         <View style={styles.formCard}>
@@ -139,6 +183,13 @@ export default function ScheduleScreen() {
           <Text style={styles.label}>Workout</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.planPicker}>
             {plans.map((plan) => <Pressable accessibilityRole="button" accessibilityState={{ selected: planId === plan.id }} key={plan.id} onPress={() => setPlanId(plan.id)} style={[styles.planChip, planId === plan.id && styles.planChipActive]}><Text style={[styles.planChipText, planId === plan.id && styles.planChipTextActive]}>{plan.name}</Text></Pressable>)}
+          </ScrollView>
+          <Text style={styles.label}>Quick day</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickDays}>
+            {quickDates.map((quickDate, index) => {
+              const value = toDateValue(quickDate);
+              return <Pressable accessibilityRole="button" accessibilityLabel={`Use ${quickDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`} accessibilityState={{ selected: date === value }} key={value} onPress={() => setDate(value)} style={[styles.quickDay, date === value && styles.quickDayActive]}><Text style={[styles.quickDayName, date === value && styles.quickDayTextActive]}>{index === 0 ? 'Today' : index === 1 ? 'Tomorrow' : quickDate.toLocaleDateString('en-US', { weekday: 'short' })}</Text><Text style={[styles.quickDayDate, date === value && styles.quickDayTextActive]}>{quickDate.getDate()}</Text></Pressable>;
+            })}
           </ScrollView>
           <View style={styles.inputRow}>
             <View style={styles.inputGroup}><Text style={styles.label}>Date</Text><TextInput value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" style={styles.input} /></View>
@@ -153,6 +204,7 @@ export default function ScheduleScreen() {
 
       <Text style={styles.sectionTitle}>Upcoming workouts</Text>
       <View style={styles.list}>
+        {!sorted.length ? <Pressable accessibilityRole="button" onPress={() => { resetForm(); setShowForm(true); }} style={styles.emptySchedule}><View style={styles.emptyIcon}><Ionicons name="calendar-outline" size={24} color={colors.accent} /></View><View style={styles.emptyCopy}><Text style={styles.emptyTitle}>Plan your first workout</Text><Text style={styles.emptyText}>Choose a day and KineticForm will keep it simple.</Text></View><Ionicons name="add-circle" size={24} color={colors.accent} /></Pressable> : null}
         {sorted.map((item) => {
           const plan = plans.find((entry) => entry.id === item.planId);
           const start = new Date(item.startISO);
@@ -168,11 +220,12 @@ export default function ScheduleScreen() {
                   <View style={styles.statusRow}><View style={[styles.statusDot, status === 'completed' && styles.completedDot, status === 'missed' && styles.missedDot, item.optional && styles.optionalDot]} /><Text style={styles.statusText}>{item.optional && status !== 'completed' ? 'optional · no streak penalty' : status}{item.recurrence === 'weekly' ? ' · repeats weekly' : ''}</Text></View>
                 </View>
                 <View style={styles.eventActions}>
-                  {status === 'upcoming' ? <Pressable accessibilityRole="button" accessibilityLabel={`Start ${item.title}`} onPress={() => { if (plan) { startWorkout(plan.id, item.id); router.push('/workout'); } }} style={styles.playButton}><Ionicons name="play" size={18} color={colors.white} /></Pressable> : null}
+                  {status === 'upcoming' ? <Pressable accessibilityRole="button" accessibilityLabel={activeWorkout?.planId === item.planId ? `Continue ${item.title}` : `Start ${item.title}`} onPress={() => launchWorkout(item)} style={styles.playButton}><Ionicons name={activeWorkout?.planId === item.planId ? 'arrow-forward' : 'play'} size={18} color={colors.white} /></Pressable> : null}
                   <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${item.title}`} onPress={() => editItem(item)} style={styles.iconAction}><Ionicons name="create-outline" size={18} color={colors.textMuted} /></Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${item.title}`} onPress={() => remove(item)} style={styles.iconAction}><Ionicons name="trash-outline" size={18} color={colors.danger} /></Pressable>
                 </View>
                 {plan && !item.googleEventId ? <Pressable accessibilityRole="link" accessibilityLabel={`Add ${item.title} to Google Calendar`} onPress={() => Linking.openURL(googleCalendarFallbackUrl(item, plan))} style={styles.googleLink}><Ionicons name="calendar-outline" size={15} color={colors.accent} /><Text style={styles.googleLinkText}>Add to Google Calendar</Text></Pressable> : null}
+                {item.googleEventUrl ? <Pressable accessibilityRole="link" accessibilityLabel={`Open ${item.title} in Google Calendar`} onPress={() => Linking.openURL(item.googleEventUrl!)} style={styles.googleLink}><Ionicons name="open-outline" size={15} color={colors.success} /><Text style={[styles.googleLinkText, styles.syncedLinkText]}>Open synced event</Text></Pressable> : null}
                 {status === 'missed' ? <Pressable accessibilityRole="button" accessibilityLabel={`Mark ${item.title} completed`} onPress={() => markSchedule(item.id, 'completed')} style={styles.markDone}><Text style={styles.markDoneText}>Mark completed</Text></Pressable> : null}
               </View>
             </View>
@@ -197,15 +250,27 @@ const styles = StyleSheet.create({
   connectButton: { paddingHorizontal: 13, paddingVertical: 10, backgroundColor: colors.accent, borderRadius: 12 },
   connectedButton: { backgroundColor: colors.success },
   connectText: { color: colors.white, fontSize: 11, fontWeight: '900' },
+  syncButton: { minHeight: 48, marginTop: 10, borderRadius: 15, backgroundColor: colors.success, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  syncButtonText: { color: colors.white, fontSize: 12, fontWeight: '900' },
   calendarExport: { minHeight: 68, marginTop: 10, borderRadius: 17, backgroundColor: colors.accentDim, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
   calendarExportCopy: { flex: 1 },
   calendarExportTitle: { color: colors.text, fontSize: 12, fontWeight: '900' },
   calendarExportText: { color: colors.textMuted, fontSize: 10, lineHeight: 14, marginTop: 3 },
+  summaryRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  summaryCard: { flex: 1, minWidth: 0, borderRadius: 15, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, paddingVertical: 11, alignItems: 'center' },
+  summaryNumber: { color: colors.text, fontSize: 19, fontWeight: '900' },
+  summaryLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '700', marginTop: 2 },
   formCard: { marginTop: 14, padding: 18, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.accentSoft },
   formTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   formTitle: { color: colors.text, fontSize: 20, fontWeight: '900' },
   label: { color: colors.textMuted, fontSize: 10, fontWeight: '900', marginTop: 14, marginBottom: 6 },
   planPicker: { gap: 8 },
+  quickDays: { gap: 7, paddingBottom: 2 },
+  quickDay: { minWidth: 68, height: 58, borderRadius: 14, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
+  quickDayActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  quickDayName: { color: colors.textMuted, fontSize: 9, fontWeight: '800' },
+  quickDayDate: { color: colors.text, fontSize: 16, fontWeight: '900', marginTop: 2 },
+  quickDayTextActive: { color: colors.white },
   planChip: { paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.ink },
   planChipActive: { backgroundColor: colors.accent },
   planChipText: { color: colors.text, fontSize: 12, fontWeight: '800' },
@@ -225,6 +290,11 @@ const styles = StyleSheet.create({
   saveText: { color: colors.white, fontSize: 15, fontWeight: '900' },
   sectionTitle: { color: colors.text, fontSize: 21, fontWeight: '900', marginTop: spacing.xl, marginBottom: 13 },
   list: { gap: 11 },
+  emptySchedule: { minHeight: 92, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, padding: 14, flexDirection: 'row', alignItems: 'center' },
+  emptyIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  emptyCopy: { flex: 1, minWidth: 0 },
+  emptyTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  emptyText: { color: colors.textMuted, fontSize: 10, lineHeight: 15, marginTop: 4 },
   eventCard: { minHeight: 112, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, padding: 14, flexDirection: 'row', alignItems: 'flex-start' },
   dateBlock: { width: 54, height: 64, borderRadius: 16, backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center' },
   day: { color: colors.accent, fontSize: 10, fontWeight: '900' },
@@ -244,6 +314,7 @@ const styles = StyleSheet.create({
   iconAction: { width: 34, height: 38, alignItems: 'center', justifyContent: 'center' },
   googleLink: { alignSelf: 'flex-start', marginTop: 11, flexDirection: 'row', gap: 5, alignItems: 'center' },
   googleLinkText: { color: colors.accent, fontSize: 11, fontWeight: '800' },
+  syncedLinkText: { color: colors.success },
   markDone: { alignSelf: 'flex-start', marginTop: 8 },
   markDoneText: { color: colors.success, fontSize: 11, fontWeight: '900' },
 });

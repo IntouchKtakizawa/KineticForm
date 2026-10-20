@@ -2,13 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing } from '@/constants/theme';
 import { useWorkout } from '@/store/workout-store';
 import { WorkoutPlan } from '@/types/workout';
 import { extractDocumentText, ParsedWorkout, parseWorkoutText } from '@/utils/import-parser';
+import { showMessage } from '@/utils/alerts';
 
 const sample = `Monday Push Day
 Bench Press — 4 × 8 — 50 kg — 120 sec rest
@@ -24,7 +25,7 @@ export default function ImportScreen() {
 
   const parse = (source = text) => {
     const result = parseWorkoutText(source);
-    if (!result.length) return Alert.alert('Nothing recognised yet', 'Use one exercise per line, for example “Bench Press — 4 × 8”. You can correct everything before saving.');
+    if (!result.length) return showMessage('Nothing recognised yet', 'Use one exercise per line, for example “Bench Press — 4 × 8”. You can correct everything before saving.');
     setPreview(result);
   };
 
@@ -39,10 +40,10 @@ export default function ImportScreen() {
       setFileName(asset.name);
       setText(extracted);
       const parsed = parseWorkoutText(extracted);
-      if (!parsed.length) Alert.alert('Review the extracted text', 'The file opened, but no full exercise lines were detected. Correct the text below, then tap Analyse plan.');
+      if (!parsed.length) showMessage('Review the extracted text', 'The file opened, but no full exercise lines were detected. Correct the text below, then tap Analyse plan.');
       else setPreview(parsed);
     } catch (error) {
-      Alert.alert('Could not read this file', error instanceof Error ? error.message : 'Paste the workout text instead.');
+      showMessage('Could not read this file', error instanceof Error ? error.message : 'Paste the workout text instead.');
     } finally { setBusy(false); }
   };
 
@@ -52,7 +53,7 @@ export default function ImportScreen() {
 
   const save = () => {
     const selected = preview.filter((item) => item.selected && item.exercises.length);
-    if (!selected.length) return Alert.alert('Choose a workout', 'Select at least one reviewed workout to import.');
+    if (!selected.length) return showMessage('Choose a workout', 'Select at least one reviewed workout to import.');
     selected.forEach((item) => {
       const plan: WorkoutPlan = { id: `imported-${Date.now()}-${item.id}`, name: item.name, focus: Array.from(new Set(item.exercises.map((exercise) => exercise.muscle))).slice(0, 3).join(' · '), durationMinutes: Math.max(30, Math.round(item.exercises.reduce((sum, exercise) => sum + exercise.sets * (exercise.restSeconds + 45), 0) / 60)), exercises: item.exercises, notes: `Imported from ${fileName || 'pasted text'} and reviewed before saving.`, createdAt: Date.now() };
       savePlan(plan);

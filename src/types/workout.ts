@@ -111,6 +111,7 @@ export type ActiveWorkout = {
 export type WorkoutSession = {
   id: string;
   planId: string;
+  scheduledWorkoutId?: string;
   name: string;
   completedAt: number;
   durationSeconds: number;

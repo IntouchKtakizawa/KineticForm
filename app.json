@@ -2,7 +2,7 @@
   "expo": {
     "name": "KineticForm",
     "slug": "kineticform",
-    "version": "1.2.1",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/kineticform-icon.png",
     "scheme": "kineticform",
@@ -17,7 +17,7 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/kineticform-icon.png"
     },
     "plugins": [
@@ -30,7 +30,8 @@
           "backgroundColor": "#F7F5FF"
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,

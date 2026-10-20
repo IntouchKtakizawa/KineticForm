@@ -7,7 +7,7 @@ import { colors, radius, spacing } from '@/constants/theme';
 import { useWorkout } from '@/store/workout-store';
 
 export default function ProfileScreen() {
-  const { displayName, profile, preferences, history, weightUnit, toggleWeightUnit } = useWorkout();
+  const { displayName, profile, preferences, history, plans, programs, weightUnit, toggleWeightUnit } = useWorkout();
   return (
     <Screen>
       <View style={styles.profileTop}>
@@ -41,7 +41,7 @@ export default function ProfileScreen() {
       <SectionHeader title="Workout settings" />
       <View style={styles.group}>
         <Pressable accessibilityRole="button" accessibilityLabel="Training preferences" onPress={() => router.push('/onboarding' as never)}><ListRow icon="options-outline" title="Training preferences" detail="Goal, equipment, days, and session length" /></Pressable>
-        <ListRow icon="calendar-outline" title="Workout plan" detail="Upper body · 5 moves" />
+        <Pressable accessibilityRole="button" accessibilityLabel="View workout programs" onPress={() => router.push('/programs' as never)}><ListRow icon="calendar-outline" title="Workout plan" detail={programs[0]?.name ?? `${plans.length} saved workout${plans.length === 1 ? '' : 's'}`} /></Pressable>
         <ListRow icon="scale-outline" title="Weight unit" detail="Choose kilograms or pounds" trailing={
           <Pressable accessibilityRole="button" accessibilityLabel={`Weight unit: ${weightUnit}. Tap to change.`} onPress={toggleWeightUnit} style={styles.unitToggle}>
             <Text style={styles.unitText}>{weightUnit.toUpperCase()}</Text>
@@ -59,7 +59,7 @@ export default function ProfileScreen() {
       <SectionHeader title="About" />
       <View style={styles.group}>
         <ListRow icon="phone-portrait-outline" title="Works offline" detail="Use it anywhere" />
-        <ListRow icon="heart-outline" title="KineticForm" detail="Version 1.1.0" />
+        <ListRow icon="heart-outline" title="KineticForm" detail="Version 1.3.0" />
       </View>
     </Screen>
   );

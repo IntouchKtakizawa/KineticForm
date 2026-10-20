@@ -17,4 +17,8 @@ for (const entry of entries) {
   await mkdir(directory, { recursive: true });
   await copyFile(new URL(entry.name, dist), new URL('index.html', directory));
 }
-await copyFile(new URL('+not-found.html', dist), new URL('404.html', dist));
+// Static output has a generated not-found page. Single-page output instead
+// needs the app shell as the GitHub Pages fallback so client-side routes can
+// recover after a direct link or refresh.
+const fallback = entries.some((entry) => entry.name === '+not-found.html') ? '+not-found.html' : 'index.html';
+await copyFile(new URL(fallback, dist), new URL('404.html', dist));

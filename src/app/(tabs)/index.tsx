@@ -21,8 +21,10 @@ export default function TodayScreen() {
   const { workout } = useLocalSearchParams<{ workout?: string }>();
   const { hydrated, activeWorkout, displayName, startWorkout, plans, schedule, onboardingComplete } = useWorkout();
   const [referenceNow] = useState(() => Date.now());
-  const plan = plans.find((item) => item.id === activeWorkout?.planId) ?? plans.find((item) => item.id === workout) ?? plans[0];
   const upcoming = schedule.filter((item) => item.status === 'upcoming' && new Date(item.startISO).getTime() >= referenceNow).sort((a, b) => a.startISO.localeCompare(b.startISO))[0];
+  const todayKey = new Date(referenceNow).toDateString();
+  const todayScheduled = schedule.filter((item) => item.status === 'upcoming' && new Date(item.startISO).toDateString() === todayKey).sort((a, b) => a.startISO.localeCompare(b.startISO))[0];
+  const plan = plans.find((item) => item.id === activeWorkout?.planId) ?? plans.find((item) => item.id === workout) ?? plans.find((item) => item.id === todayScheduled?.planId) ?? plans[0];
   const completedSets = activeWorkout?.exercises.flatMap((exercise) => exercise.logs).filter((set) => set.completed).length ?? 0;
   const totalSets = activeWorkout?.exercises.reduce((sum, exercise) => sum + exercise.logs.length, 0) ?? 0;
 
@@ -97,7 +99,7 @@ export default function TodayScreen() {
         <PrimaryButton label={activeWorkout ? 'Continue workout' : 'Start workout'} icon="play" onPress={openWorkout} />
       </View>
 
-      <SectionHeader title="What you’ll do" action={`${plan.exercises.length} moves`} />
+      <SectionHeader title="What you’ll do" action="Change" onAction={() => router.push('/programs' as never)} />
       <ExerciseList exercises={plan.exercises} />
     </Screen>
   );

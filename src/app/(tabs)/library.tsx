@@ -9,7 +9,7 @@ import { exerciseFilters, exerciseLibrary } from '@/data/exercises';
 import { useWorkout } from '@/store/workout-store';
 import { ExerciseDefinition } from '@/types/workout';
 
-const muscleColors: Record<string, string> = { Chest: '#FFE1E6', Back: '#DDEBFF', Shoulders: '#E8E1FF', Biceps: '#FFF0D7', Triceps: '#E5F7EA', Legs: '#DDF7EB', Core: '#F4E4FF', Cardio: '#FFE6D5', 'Full body': '#E6E9FF' };
+const muscleColors: Record<string, string> = { Chest: '#FFE1E6', Back: '#DDEBFF', Shoulders: '#E8E1FF', Biceps: '#FFF0D7', Triceps: '#E5F7EA', Legs: '#DDF7EB', Core: '#F4E4FF', Cardio: '#FFE6D5', Mobility: '#DDF7EB', 'Full body': '#E6E9FF' };
 
 export default function LibraryScreen() {
   const { customExercises, addCustomExercise } = useWorkout();
